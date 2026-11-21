@@ -208,12 +208,12 @@ void main() {
 
   testWidgets('home', (tester) async {
     final store = _homeStore();
-    await shot(tester, store, RootShell(store: store), 'features_home');
+    await shot(tester, store, RootShell(store: store), 'brand_home');
   }, skip: skip);
 
   testWidgets('chat', (tester) async {
     final store = _chatStore();
-    await shot(tester, store, ChatView(store: store), 'features_chat');
+    await shot(tester, store, ChatView(store: store), 'brand_chat');
   }, skip: skip);
 
   testWidgets('settings', (tester) async {
@@ -222,13 +222,13 @@ void main() {
       tester,
       store,
       SettingsView(store: store),
-      'features_settings',
+      'brand_settings',
     );
   }, skip: skip);
 
   testWidgets('models', (tester) async {
     final store = _modelsStore();
-    await shot(tester, store, ModelsView(store: store), 'features_models');
+    await shot(tester, store, ModelsView(store: store), 'brand_models');
   }, skip: skip);
 
   testWidgets('oled', (tester) async {
@@ -238,7 +238,7 @@ void main() {
       tester,
       store,
       SettingsView(store: store),
-      'features_oled',
+      'brand_oled',
       theme: AppTheme.build(
         AppTheme.schemeFor(
           brightness: Brightness.dark,
