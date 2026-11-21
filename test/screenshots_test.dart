@@ -195,7 +195,7 @@ void main() {
   }, skip: skip);
 
   testWidgets('03 聊天', (tester) async {
-    await shot(tester, _store(withChat: true), 'm3e_green_03_chat');
+    await shot(tester, _store(withChat: true), 'm3e_green_03_chat_plain');
   }, skip: skip);
 
   testWidgets('04 设置', (tester) async {

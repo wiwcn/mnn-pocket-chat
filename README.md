@@ -15,7 +15,7 @@
 
 | 对话 | 模型库 | 聊天 |
 | :-: | :-: | :-: |
-| <img src="screenshots/m3e_green_01_welcome.png" width="230"/> | <img src="screenshots/m3e_green_02_models.png" width="230"/> | <img src="screenshots/m3e_green_03_chat.png" width="230"/> |
+| <img src="screenshots/m3e_green_01_welcome.png" width="230"/> | <img src="screenshots/m3e_green_02_models.png" width="230"/> | <img src="screenshots/m3e_green_03_chat_plain.png" width="230"/> |
 
 | 设置 | 会话历史 |
 | :-: | :-: |
