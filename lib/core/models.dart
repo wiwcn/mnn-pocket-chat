@@ -248,6 +248,8 @@ class EngineSettings {
     this.threads = 4,
     this.backend = 'cpu',
     this.useMmap = true,
+    this.repetitionPenalty = 1.05,
+    this.ngramFactor = 1.1,
     this.systemPrompt =
         'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
   });
@@ -261,6 +263,11 @@ class EngineSettings {
   String backend;
   /// 是否用 mmap 方式加载权重（降低内存峰值）。可在设置里关闭以兼容部分机型。
   bool useMmap;
+  /// 重复惩罚：>1 时对已出现的 token 降权，抑制小模型陷入重复循环。
+  /// MNN 的 sampler 仅在 repetition_penalty>1 或 ngram_factor>1 时才启用惩罚。
+  double repetitionPenalty;
+  /// n-gram 惩罚因子：>1 时对连续重复的 n 元组降权，专门防「一长串相同字符」。
+  double ngramFactor;
   String systemPrompt;
 
   Map<String, dynamic> toJson() => {
@@ -272,6 +279,8 @@ class EngineSettings {
         'threads': threads,
         'backend': backend,
         'useMmap': useMmap,
+        'repetitionPenalty': repetitionPenalty,
+        'ngramFactor': ngramFactor,
         'systemPrompt': systemPrompt,
       };
 
@@ -285,6 +294,9 @@ class EngineSettings {
       threads: (json['threads'] as num?)?.toInt() ?? 4,
       backend: json['backend'] as String? ?? 'cpu',
       useMmap: json['useMmap'] as bool? ?? true,
+      repetitionPenalty:
+          (json['repetitionPenalty'] as num?)?.toDouble() ?? 1.05,
+      ngramFactor: (json['ngramFactor'] as num?)?.toDouble() ?? 1.1,
       systemPrompt: json['systemPrompt'] as String? ??
           'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
     );
@@ -308,9 +320,14 @@ class EngineSettings {
       'min_p': 0.05,
       'tfs_z': 1.0,
       'typical': 0.95,
-      'repetition_penalty': 1.0,
+      // 反退化：MNN 的 sampler 仅在下列值越过阈值时才真正施加惩罚。
+      // 此前全部是 no-op（1.0/0/0/无 ngram），小模型（qwen3.5-0.8b、
+      // minicpm4 等）长生成时容易陷入重复循环，反复吐出同一 token（如「H」）。
+      'repetition_penalty': repetitionPenalty,
+      'frequency_penalty': 0.1,
       'presence_penalty': 0.0,
-      'frequency_penalty': 0.0,
+      'n_gram': 8,
+      'ngram_factor': ngramFactor,
       'max_new_tokens': maxNewTokens,
     };
     // 大模型优先用 mmap 加载权重，避免整块读入内存导致 OOM 闪退。

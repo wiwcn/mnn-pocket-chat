@@ -15,7 +15,7 @@ Pocket Chat 是一个完全离线的 Android 聊天客户端。它把 MNN 的端
 ## 功能
 
 - **完全本地推理** —— MNN 3.6.2 + Kotlin/JNI，对话内容不出设备
-- **123 个模型** —— 从 0.125B 到 35B，覆盖 Qwen、Gemma、Llama、DeepSeek、MiniCPM、Hunyuan、SmolLM 等 29 个厂商/系列，只要 MNN 架构能跑就收录
+- **125 个模型** —— 从 0.125B 到 35B，覆盖 Qwen、Gemma、Llama、DeepSeek、MiniCPM、Hunyuan、SmolLM 等 29 个厂商/系列，只要 MNN 架构能跑就收录
 - **后台下载** —— 前台服务 + 常驻通知，锁屏或切到后台继续下载，进度实时可见
 - **断点续传** —— 逐文件校验，中断后从已下载位置继续
 - **图片多模态** —— 相册选图，交给视觉模型理解画面
@@ -55,7 +55,7 @@ Pocket Chat 是一个完全离线的 Android 聊天客户端。它把 MNN 的端
 
 ## 模型目录
 
-目录收录 **123 个** MNN 可运行的对话与视觉模型，定义在 [`assets/models.json`](assets/models.json)。参数范围 0.125B–35B，体积范围 65 MiB–21 GiB。
+目录收录 **125 个** MNN 可运行的对话与视觉模型，定义在 [`assets/models.json`](assets/models.json)。参数范围 0.125B–35B，体积范围 65 MiB–21 GiB。
 
 筛选栏提供「已安装 / 推荐 / 思考 / 多模态 / 代码 / 数学 / 安全」等标签，搜索框支持模型名、厂商与标签。
 
@@ -68,6 +68,7 @@ Pocket Chat 是一个完全离线的 Android 聊天客户端。它把 MNN 的端
 | MiniCPM4 0.5B | 0.5B | 297 MiB | 32K | 中文高密度，短文本表现好 |
 | Qwen3.5 0.8B | 0.8B | 522 MiB | 自适应 | 小体积多模态，可看图 |
 | Gemma 3 1B | 1.0B | 1003 MiB | 自适应 | Google 小模型，英文稳定 |
+| Gemma 4 E2B / E4B | 2B / 4B 有效 | 3.5 / 5.2 GiB | 32K | 新一代多模态，支持图像+音频输入 |
 | Hunyuan 1.8B | 1.8B | 1189 MiB | 自适应 | 混合思考，中文流畅 |
 | Qwen3.5 2B | 2.0B | 1322 MiB | 自适应 | 多模态，综合能力明显提升 |
 | Qwen3 4B / 8B | 4B / 8B | 2.6 / 5.3 GiB | 自适应 | 复杂问答与代码 |
@@ -102,7 +103,7 @@ Android 13+ 需要 `POST_NOTIFICATIONS` 权限，App 会在首次下载时请求
 
 ## 为什么特别推荐 Pocket 0.3B
 
-原版 MNN Chat 的市场目录停留在 2026-05，没有收录 2026-11 发布的 Pocket 0.3B；同时普通用户没有界面内的模型导入入口。Pocket Chat 直接内置 123 个模型的目录，并对 Pocket 0.3B 使用其原生 `MNN/MNN-Pocket-0.3B-MNN` 仓库与 MNN 3.6.2 运行时，因此开箱即可下载、加载、对话。
+原版 MNN Chat 的市场目录停留在 2026-05，没有收录 2026-11 发布的 Pocket 0.3B；同时普通用户没有界面内的模型导入入口。Pocket Chat 直接内置 125 个模型的目录，并对 Pocket 0.3B 使用其原生 `MNN/MNN-Pocket-0.3B-MNN` 仓库与 MNN 3.6.2 运行时，因此开箱即可下载、加载、对话。
 
 ## 架构
 

@@ -2684,5 +2684,53 @@
     "temperature": 0.7,
     "topP": 0.9,
     "topK": 40
+  },
+  {
+    "id": "gemma-4-E2B-it-MNN",
+    "name": "Gemma 4 E2B IT",
+    "vendor": "Gemma",
+    "paramsB": 2.0,
+    "sizeBytes": 3739999910,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "Google Gemma 4 新一代端侧多模态模型，E2B 规格（5B 总参数/2B 有效激活），支持文本、图像与音频输入，MNN 官方预转换版本，下载约 3.5 GB。",
+    "tags": [
+      "多模态",
+      "音频",
+      "新",
+      "推荐"
+    ],
+    "modelScopeRepo": "MNN/gemma-4-E2B-it-MNN",
+    "hfRepo": "taobao-mnn/gemma-4-E2B-it-MNN",
+    "accent": "#4285F4",
+    "recommended": true,
+    "vision": true,
+    "temperature": 0.9,
+    "topP": 0.95,
+    "topK": 64
+  },
+  {
+    "id": "gemma-4-E4B-it-MNN",
+    "name": "Gemma 4 E4B IT",
+    "vendor": "Gemma",
+    "paramsB": 4.0,
+    "sizeBytes": 5542174671,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "Google Gemma 4 新一代端侧多模态模型，E4B 规格（8B 总参数/4B 有效激活），支持文本、图像与音频输入，MNN 官方预转换版本，下载约 5.2 GB。",
+    "tags": [
+      "多模态",
+      "音频",
+      "新",
+      "推荐"
+    ],
+    "modelScopeRepo": "MNN/gemma-4-E4B-it-MNN",
+    "hfRepo": "taobao-mnn/gemma-4-E4B-it-MNN",
+    "accent": "#4285F4",
+    "recommended": true,
+    "vision": true,
+    "temperature": 0.9,
+    "topP": 0.95,
+    "topK": 64
   }
 ]

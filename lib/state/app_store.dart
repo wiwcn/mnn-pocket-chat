@@ -56,6 +56,10 @@ class AppStore extends ChangeNotifier {
   Map<String, dynamic> _prefs = {};
   final Map<String, DateTime> _downloadTicks = {};
 
+  // 反退化兜底：小模型长生成时可能陷入重复循环，反复吐同一 token（如「H」）。
+  // 采样层惩罚之外，这里检测尾部短模式的连续重复，命中即自动停止。
+  bool _repetitionStopped = false;
+
   ModelSpec? specFor(String id) {
     for (final m in catalog) {
       if (m.id == id) return m;
@@ -460,6 +464,7 @@ class AppStore extends ChangeNotifier {
     generating = true;
     stopping = false;
     engineError = null;
+    _repetitionStopped = false;
     notifyListeners();
     await debugLog.checkpoint('chat',
         'generate begin: session=${session.id}, history=${session.messages.length - 1}, maxTokens=${settings.maxNewTokens}, image=${imagePath != null}');
@@ -530,7 +535,16 @@ class AppStore extends ChangeNotifier {
         if (session.messages.last.content.isEmpty) {
           debugLog.info('chat', 'first token received');
         }
+        if (_repetitionStopped) return; // 已因退化停止，忽略后续残留 token
         session.messages.last.content += event.text ?? '';
+        // 反退化兜底：检测尾部短模式连续重复，命中则自动停止生成本轮。
+        if (_isDegenerateRepeat(session.messages.last.content)) {
+          _repetitionStopped = true;
+          stopping = true;
+          debugLog.error('chat',
+              'degenerate repetition detected, auto-stopping generation');
+          unawaited(engine.stop());
+        }
         notifyListeners();
         break;
       case 'done':
@@ -558,6 +572,44 @@ class AppStore extends ChangeNotifier {
         notifyListeners();
         break;
     }
+  }
+
+  /// 检测文本尾部是否出现退化式重复：某个长度 1~12 的模式连续重复多次。
+  /// 典型症状是「H」或「哈哈哈哈」或整句循环。仅检查尾部窗口，避免误判
+  /// 正文里合法的少量重复；需连续重复达到阈值才判定，防止正常文本被截断。
+  bool _isDegenerateRepeat(String text) {
+    // 只在积累到一定长度后检测，且只看尾部 400 字，控制开销。
+    if (text.length < 8) return false;
+    final window = text.length > 400 ? text.substring(text.length - 400) : text;
+    // 单个字符连续重复：如 HHHHHHHH…（用户报告的「一长串 H」）。
+    if (_trailingCharRepeat(window) >= 12) return true;
+    // 短模式（2~12 字）连续重复 >= 4 次。
+    for (var len = 2; len <= 12; len++) {
+      if (window.length < len * 4) break;
+      final tail = window.substring(window.length - len * 4);
+      final block = tail.substring(0, len);
+      var allSame = true;
+      for (var i = 1; i < 4; i++) {
+        if (tail.substring(i * len, (i + 1) * len) != block) {
+          allSame = false;
+          break;
+        }
+      }
+      if (allSame) return true;
+    }
+    return false;
+  }
+
+  /// 末尾同一字符连续出现的次数。
+  int _trailingCharRepeat(String text) {
+    if (text.isEmpty) return 0;
+    final last = text.codeUnitAt(text.length - 1);
+    var count = 0;
+    for (var i = text.length - 1; i >= 0; i--) {
+      if (text.codeUnitAt(i) != last) break;
+      count++;
+    }
+    return count;
   }
 
   Future<void> releaseModel() async {
