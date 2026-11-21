@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../services/debug_log.dart';
 import '../../services/system_links.dart';
@@ -28,10 +31,14 @@ class _DebugViewState extends State<DebugView> {
 
   Future<void> _reload() async {
     final content = await debugLog.read();
+    final nativeTrace = await SystemLinks.readNativeTrace();
     final f = await debugLog.file;
+    final merged = nativeTrace.trim().isEmpty
+        ? content
+        : '$content\n===== NATIVE TRACE (含崩溃堆栈) =====\n$nativeTrace';
     if (!mounted) return;
     setState(() {
-      _content = content;
+      _content = merged;
       _path = f?.path ?? '不可用';
       _loading = false;
     });
@@ -51,15 +58,18 @@ class _DebugViewState extends State<DebugView> {
   }
 
   Future<void> _share() async {
-    final f = await debugLog.file;
-    if (f == null || !await f.exists()) {
+    try {
+      // 把 debug.log 与 native trace 合并成一个文件导出，确保崩溃堆栈一并带出。
+      final dir = await getApplicationSupportDirectory();
+      final bundle = File('${dir.path}${Platform.pathSeparator}debug_bundle.log');
+      await bundle.writeAsString(_content);
+      await SystemLinks.shareFile(bundle.path, mimeType: 'text/plain');
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('日志文件不可用')),
+        const SnackBar(content: Text('导出失败')),
       );
-      return;
     }
-    await SystemLinks.shareFile(f.path, mimeType: 'text/plain');
   }
 
   @override

@@ -19,7 +19,10 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MnnLlmBridge(flutterEngine.dartExecutor.binaryMessenger)
+        MnnLlmBridge(
+            flutterEngine.dartExecutor.binaryMessenger,
+            applicationContext.filesDir.absolutePath,
+        )
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             DOWNLOADS_CHANNEL,
@@ -62,6 +65,24 @@ class MainActivity : FlutterActivity() {
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         startActivity(Intent.createChooser(send, "分享调试日志"))
+                        result.success(true)
+                    } catch (_: Throwable) {
+                        result.success(false)
+                    }
+                }
+                "readNativeTrace" -> {
+                    // native 层同步落盘的 trace（含崩溃堆栈），供调试页展示/导出。
+                    try {
+                        val f = File(applicationContext.filesDir, "native_trace.log")
+                        result.success(if (f.exists()) f.readText() else "")
+                    } catch (_: Throwable) {
+                        result.success("")
+                    }
+                }
+                "clearNativeTrace" -> {
+                    try {
+                        val f = File(applicationContext.filesDir, "native_trace.log")
+                        if (f.exists()) f.writeText("")
                         result.success(true)
                     } catch (_: Throwable) {
                         result.success(false)

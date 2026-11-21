@@ -10,7 +10,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Thin Kotlin facade over the MNN libllm JNI bridge. */
-class MnnLlmBridge(messenger: BinaryMessenger) :
+class MnnLlmBridge(messenger: BinaryMessenger, logDir: String? = null) :
     MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     private val methodChannel = MethodChannel(messenger, "mnn_pocket/engine")
@@ -43,6 +43,14 @@ class MnnLlmBridge(messenger: BinaryMessenger) :
     init {
         methodChannel.setMethodCallHandler(this)
         eventChannel.setStreamHandler(this)
+        // 把 native trace 路径注入到 JNI：native 崩溃时同步落盘堆栈到该文件。
+        if (!logDir.isNullOrEmpty()) {
+            try {
+                val tracePath = java.io.File(logDir, "native_trace.log").absolutePath
+                nativeSetLogPath(tracePath)
+            } catch (_: Throwable) {
+            }
+        }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -194,6 +202,8 @@ class MnnLlmBridge(messenger: BinaryMessenger) :
     override fun onCancel(arguments: Any?) {
         sink = null
     }
+
+    private external fun nativeSetLogPath(path: String)
 
     private external fun nativeCreate(configPath: String, overridesJson: String): Long
     private external fun nativeGenerate(

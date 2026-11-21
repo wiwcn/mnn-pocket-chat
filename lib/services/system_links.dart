@@ -15,6 +15,22 @@ class SystemLinks {
     }
   }
 
+  /// 读取 native 层同步落盘的 trace（含崩溃堆栈）。
+  static Future<String> readNativeTrace() async {
+    try {
+      return await _channel.invokeMethod<String>('readNativeTrace') ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// 清空 native trace。
+  static Future<void> clearNativeTrace() async {
+    try {
+      await _channel.invokeMethod<bool>('clearNativeTrace');
+    } catch (_) {}
+  }
+
   /// 通过系统分享面板把一个应用私有文件发送出去（如调试日志）。
   static Future<bool> shareFile(String path, {String? mimeType}) async {
     try {

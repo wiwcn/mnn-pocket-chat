@@ -8,12 +8,19 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fcntl.h>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 #include <vector>
+#include <csignal>
+#include <ctime>
+#include <unwind.h>
 
 #include "llm/llm.hpp"
 
@@ -26,6 +33,115 @@ using MNN::Transformer::LlmStatus;
 namespace {
 
 JavaVM* g_vm = nullptr;
+
+// ---------------------------------------------------------------------------
+// 同步落盘的 native trace。
+//
+// 背景：此前 stage 打点走 __android_log_print（只进 logcat），而用户能导出的
+// 是应用内 debug.log，导致 native 崩溃现场完全不可见。这里改为：
+//   1) 所有关键阶段同步 open/write/close + fsync 到一个独立文件，即使随后
+//      SIGSEGV，磁盘上也保留“崩溃前最后一步”；
+//   2) 注册 SIGSEGV/SIGABRT/SIGBUS/SIGILL 处理器，崩溃瞬间用 backtrace 写出
+//       native 堆栈，从而一次性拿到根因，不再靠猜。
+//
+// 信号处理器中只调用 async-signal-safe 的操作（open/write/fsync/close 和
+// backtrace_symbols_fd 的底层 write），不使用 malloc/iostream/std::string。
+// ---------------------------------------------------------------------------
+std::string g_nativeTracePath;
+std::atomic<int> g_crashHandled{0};
+
+// async-signal-safe：不用 std::string，传入已格式化的 C 字符串。
+static void traceWriteRaw(const char* line) {
+    if (g_nativeTracePath.empty()) return;
+    int fd = ::open(g_nativeTracePath.c_str(),
+                    O_WRONLY | O_CREAT | O_APPEND, 0666);
+    if (fd < 0) return;
+    size_t len = ::strlen(line);
+    ssize_t ignored = ::write(fd, line, len);
+    (void)ignored;
+    ::fsync(fd);
+    ::close(fd);
+}
+
+// 普通打点：时间戳 + 文本，同步落盘。非信号上下文可用 std::string 拼接。
+static void traceStage(const char* stage) {
+    if (g_nativeTracePath.empty()) return;
+    timespec ts{};
+    clock_gettime(CLOCK_REALTIME, &ts);
+    struct tm tmVal{};
+    localtime_r(&ts.tv_sec, &tmVal);
+    char buf[512];
+    int n = snprintf(buf, sizeof(buf),
+                     "%02d-%02d %02d:%02d:%02d.%03d N/native: %s\n",
+                     tmVal.tm_mon + 1, tmVal.tm_mday,
+                     tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec,
+                     (int)(ts.tv_nsec / 1000000), stage);
+    if (n > 0) traceWriteRaw(buf);
+    MNN_POCKET_LOGI("stage: %s", stage);
+}
+
+// 用 libunwind（NDK 稳定支持）采集返回地址，写入 trace 文件。
+struct UnwindContext {
+    int fd;
+    int index;
+};
+
+static _Unwind_Reason_Code unwindCallback(struct _Unwind_Context* ctx, void* arg) {
+    auto* uc = static_cast<UnwindContext*>(arg);
+    if (uc->index >= 64) return _URC_END_OF_STACK;
+    uintptr_t ip = _Unwind_GetIP(ctx);
+    char line[64];
+    int n = snprintf(line, sizeof(line), "  #%02d pc 0x%lx\n",
+                     uc->index, (unsigned long)ip);
+    if (n > 0 && uc->fd >= 0) {
+        ssize_t ignored = ::write(uc->fd, line, (size_t)n);
+        (void)ignored;
+    }
+    ++uc->index;
+    return _URC_NO_REASON;
+}
+
+// 崩溃信号处理器：写出信号编号 + native 返回地址，然后恢复默认处理让进程正常终止。
+static void crashSignalHandler(int sig) {
+    // 只允许第一个信号进入，避免多重信号递归。
+    if (g_crashHandled.exchange(1) != 0) {
+        _exit(128 + sig);
+    }
+    char head[160];
+    int n = snprintf(head, sizeof(head),
+                     "\n===== NATIVE CRASH =====\nsignal=%d (%s)\n"
+                     "backtrace (relative to libmnnllm_jni.so / libc, "
+                     "use addr2line with unstripped so):\n",
+                     sig, sig == SIGSEGV ? "SIGSEGV" :
+                          sig == SIGABRT ? "SIGABRT" :
+                          sig == SIGBUS  ? "SIGBUS"  : "SIGILL/FPE");
+    traceWriteRaw(head);
+
+    int fd = g_nativeTracePath.empty()
+                 ? -1
+                 : ::open(g_nativeTracePath.c_str(),
+                          O_WRONLY | O_CREAT | O_APPEND, 0666);
+    UnwindContext uc{fd, 0};
+    _Unwind_Backtrace(unwindCallback, &uc);
+    if (fd >= 0) {
+        ::fsync(fd);
+        ::close(fd);
+    }
+    traceWriteRaw("===== END CRASH =====\n");
+
+    // 恢复默认动作并重新触发，保证系统 tombstone 正常生成。
+    signal(sig, SIG_DFL);
+    raise(sig);
+    _exit(128 + sig);
+}
+
+static void installCrashHandlers() {
+    signal(SIGSEGV, crashSignalHandler);
+    signal(SIGABRT, crashSignalHandler);
+    signal(SIGBUS, crashSignalHandler);
+    signal(SIGILL, crashSignalHandler);
+    signal(SIGFPE, crashSignalHandler);
+}
 
 std::string jstringToUtf8(JNIEnv* env, jstring js) {
     if (js == nullptr) {
@@ -164,9 +280,10 @@ struct JavaCallback {
         if (attached) g_vm->DetachCurrentThread();
     }
 
-    // 阶段打点：把 native 执行进度回传到 Dart 的 debug.log，便于崩溃定位。
+    // 阶段打点：同步落盘到 native trace（崩溃时仍保留），同时经 Java 回调
+    // 转发到 Dart 的 debug.log（异步，可能来不及落盘，仅作辅助）。
     void emitStage(const std::string& stage) {
-        MNN_POCKET_LOGI("stage: %s", stage.c_str());
+        traceStage(stage.c_str());
         if (onStage == nullptr) return;
         bool attached = false;
         JNIEnv* e = env(attached);
@@ -364,7 +481,17 @@ std::string buildStats(const LlmContext* context) {
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
     g_vm = vm;
+    installCrashHandlers();
+    traceStage("JNI_OnLoad: crash handlers installed");
     return JNI_VERSION_1_6;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_ai_mnn_pocket_MnnLlmBridge_nativeSetLogPath(JNIEnv* env, jobject,
+                                                  jstring path) {
+    if (path == nullptr) return;
+    g_nativeTracePath = jstringToUtf8(env, path);
+    traceStage("nativeSetLogPath: trace path configured");
 }
 
 extern "C" JNIEXPORT jlong JNICALL
@@ -373,24 +500,32 @@ Java_ai_mnn_pocket_MnnLlmBridge_nativeCreate(JNIEnv* env, jobject /*thiz*/,
                                              jstring overrides) {
     const std::string path = jstringToUtf8(env, configPath);
     const std::string config = jstringToUtf8(env, overrides);
+    traceStage("nativeCreate: begin");
+    traceStage((std::string("nativeCreate: config=") + config).c_str());
     try {
         Llm* llm = Llm::createLLM(path);
         if (llm == nullptr) {
+            traceStage("nativeCreate: createLLM returned null");
             return 0;
         }
         if (!config.empty()) {
             llm->set_config(config);
         }
+        traceStage("nativeCreate: load begin");
         if (!llm->load()) {
+            traceStage("nativeCreate: load FAILED");
             delete llm;
             return 0;
         }
+        traceStage("nativeCreate: load OK");
         auto* session = new Session();
         session->llm = llm;
         return reinterpret_cast<jlong>(session);
     } catch (const std::exception& e) {
+        traceStage((std::string("nativeCreate: exception ") + e.what()).c_str());
         return 0;
     } catch (...) {
+        traceStage("nativeCreate: unknown exception");
         return 0;
     }
 }
