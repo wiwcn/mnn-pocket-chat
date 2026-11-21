@@ -5,7 +5,6 @@ import '../../core/models.dart';
 import '../../state/app_store.dart';
 import '../chat/chat_view.dart';
 import '../widgets/model_icon.dart';
-import '../widgets/common.dart';
 
 class ModelsView extends StatefulWidget {
   const ModelsView({super.key, required this.store});
@@ -22,8 +21,16 @@ class _ModelsViewState extends State<ModelsView> {
   static const String _recommended = '推荐';
 
   String _filter = _all;
+  String _query = '';
+  final TextEditingController _searchController = TextEditingController();
 
   AppStore get store => widget.store;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   List<String> _filters() {
     final filters = <String>[_all, _installedFilter, _recommended];
@@ -49,8 +56,17 @@ class _ModelsViewState extends State<ModelsView> {
     }
   }
 
+  bool _matchesQuery(ModelSpec model) {
+    if (_query.isEmpty) return true;
+    final query = _query.toLowerCase();
+    return model.name.toLowerCase().contains(query) ||
+        model.vendor.toLowerCase().contains(query) ||
+        model.tags.any((tag) => tag.toLowerCase().contains(query));
+  }
+
   List<ModelSpec> _sortedModels() {
-    final models = store.catalog.where(_matches).toList();
+    final models =
+        store.catalog.where((m) => _matches(m) && _matchesQuery(m)).toList();
     models.sort((a, b) {
       final installedA = store.isInstalled(a.id) ? 0 : 1;
       final installedB = store.isInstalled(b.id) ? 0 : 1;
@@ -70,6 +86,30 @@ class _ModelsViewState extends State<ModelsView> {
   }
 
   Future<void> _download(BuildContext context, ModelSpec model) async {
+    const largeModelBytes = 2 * 1024 * 1024 * 1024;
+    if (!store.isInstalled(model.id) && model.sizeBytes >= largeModelBytes) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('下载 ${model.name}'),
+          content: Text(
+            '下载体积约 ${formatBytes(model.sizeBytes)}。'
+            '该模型较大，端侧运行需要充足内存，手机上可能较慢或无法加载。是否继续？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('继续'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+    }
     final error = await store.downloadModel(model);
     if (!context.mounted || error == null) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
@@ -96,6 +136,60 @@ class _ModelsViewState extends State<ModelsView> {
     if (ok == true) await store.deleteModel(model);
   }
 
+  Widget _sectionHeader(BuildContext context, String title) {
+    final scheme = Theme.of(context).colorScheme;
+    return SliverToBoxAdapter(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              title,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _modelList(
+    List<ModelSpec> models, {
+    required bool installedSection,
+  }) {
+    return SliverList.builder(
+      itemCount: models.length,
+      itemBuilder: (context, index) {
+        final model = models[index];
+        final progress = installedSection ? null : store.downloads[model.id];
+        return _SectionCard(
+          first: index == 0,
+          last: index == models.length - 1,
+          child: _ModelItem(
+            model: model,
+            installed: installedSection,
+            progress: progress,
+            onTap: installedSection
+                ? () => _startChat(context, model)
+                : progress == null
+                    ? () => _download(context, model)
+                    : null,
+            onLongPress: installedSection
+                ? () => _confirmDelete(context, model)
+                : null,
+            onDownload:
+                installedSection ? null : () => _download(context, model),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -104,97 +198,159 @@ class _ModelsViewState extends State<ModelsView> {
         final models = _sortedModels();
         final installed = models.where((m) => store.isInstalled(m.id)).toList();
         final available = models.where((m) => !store.isInstalled(m.id)).toList();
+        final hasConditions = _query.isNotEmpty || _filter != _all;
+
+        final slivers = <Widget>[
+          SliverAppBar.large(
+            pinned: true,
+            leading: IconButton(
+              tooltip: '返回',
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.arrow_back),
+            ),
+            title: const Text('本地模型'),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: _SearchField(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _query = value),
+                onClear: () => setState(() {
+                  _searchController.clear();
+                  _query = '';
+                }),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _FilterBar(
+                filters: _filters(),
+                selected: _filter,
+                onSelect: (value) => setState(() => _filter = value),
+              ),
+            ),
+          ),
+        ];
+
+        if (models.isEmpty) {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _EmptyResult(
+                onClear: hasConditions
+                    ? () => setState(() {
+                          _searchController.clear();
+                          _query = '';
+                          _filter = _all;
+                        })
+                    : null,
+              ),
+            ),
+          );
+        } else {
+          if (installed.isNotEmpty) {
+            slivers.add(_sectionHeader(context, '已安装'));
+            slivers.add(_modelList(installed, installedSection: true));
+          }
+          if (installed.isNotEmpty && available.isNotEmpty) {
+            slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 24)));
+          }
+          if (available.isNotEmpty) {
+            slivers.add(_sectionHeader(context, '可下载'));
+            slivers.add(_modelList(available, installedSection: false));
+          }
+        }
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 24)));
 
         return Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar.large(
-                pinned: true,
-                leading: IconButton(
-                  tooltip: '返回',
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                title: const Text('本地模型'),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Column(
-                    children: [
-                      _FilterBar(
-                        filters: _filters(),
-                        selected: _filter,
-                        onSelect: (value) => setState(() => _filter = value),
-                      ),
-                      const SizedBox(height: 8),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 240),
-                        switchInCurve: Curves.easeOut,
-                        switchOutCurve: Curves.easeIn,
-                        child: models.isEmpty
-                            ? _EmptyResult(
-                                key: ValueKey('empty-$_filter'),
-                                onClear: _filter == _all
-                                    ? null
-                                    : () => setState(() => _filter = _all),
-                              )
-                            : Column(
-                                key: ValueKey(_filter),
-                                children: [
-                                  if (installed.isNotEmpty)
-                                    SettingsSection(
-                                      title: '已安装',
-                                      children: [
-                                        for (final model in installed)
-                                          _ModelItem(
-                                            model: model,
-                                            installed: true,
-                                            progress: null,
-                                            onTap: () =>
-                                                _startChat(context, model),
-                                            onLongPress: () =>
-                                                _confirmDelete(context, model),
-                                            onDownload: null,
-                                          ),
-                                      ],
-                                    ),
-                                  if (installed.isNotEmpty &&
-                                      available.isNotEmpty)
-                                    const SizedBox(height: 24),
-                                  if (available.isNotEmpty)
-                                    SettingsSection(
-                                      title: '可下载',
-                                      children: [
-                                        for (final model in available)
-                                          _ModelItem(
-                                            model: model,
-                                            installed: false,
-                                            progress: store.downloads[model.id],
-                                            onTap:
-                                                store.downloads[model.id] == null
-                                                    ? () => _download(
-                                                          context,
-                                                          model,
-                                                        )
-                                                    : null,
-                                            onLongPress: null,
-                                            onDownload: () =>
-                                                _download(context, model),
-                                          ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          body: CustomScrollView(slivers: slivers),
         );
       },
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(28),
+      borderSide: BorderSide.none,
+    );
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: '搜索模型、厂商或标签',
+        prefixIcon: const Icon(Icons.search, size: 20),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: '清除搜索',
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: onClear,
+              ),
+        filled: true,
+        fillColor: scheme.surfaceContainerLow,
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: border,
+        enabledBorder: border,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide(color: scheme.primary),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.first,
+    required this.last,
+    required this.child,
+  });
+
+  final bool first;
+  final bool last;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Material(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.vertical(
+              top: first ? const Radius.circular(20) : Radius.zero,
+              bottom: last ? const Radius.circular(20) : Radius.zero,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -236,7 +392,7 @@ class _FilterBar extends StatelessWidget {
 }
 
 class _EmptyResult extends StatelessWidget {
-  const _EmptyResult({super.key, required this.onClear});
+  const _EmptyResult({required this.onClear});
 
   final VoidCallback? onClear;
 
@@ -254,12 +410,12 @@ class _EmptyResult extends StatelessWidget {
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
-          Text('没有符合条件的模型', style: text.titleMedium),
+          Text('没有匹配的模型', style: text.titleMedium),
           if (onClear != null) ...[
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: onClear,
-              child: const Text('清除筛选'),
+              child: const Text('清除搜索与筛选'),
             ),
           ],
         ],
@@ -284,6 +440,9 @@ class _TagPill extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -349,6 +508,7 @@ class _ModelItem extends StatelessWidget {
                         Row(
                           children: [
                             Flexible(
+                              flex: 5,
                               child: Text(
                                 model.name,
                                 maxLines: 1,
@@ -358,7 +518,10 @@ class _ModelItem extends StatelessWidget {
                             ),
                             for (final tag in model.tags.take(2)) ...[
                               const SizedBox(width: 6),
-                              _TagPill(label: tag),
+                              Flexible(
+                                flex: 2,
+                                child: _TagPill(label: tag),
+                              ),
                             ],
                           ],
                         ),

@@ -47,6 +47,12 @@ class ModelSpec {
     return '${paramsB.toStringAsFixed(paramsB == paramsB.roundToDouble() ? 1 : 2)}B';
   }
 
+  /// 市场条目未提供上下文长度时以 0 表示，交给引擎自适应。
+  String get contextLabel {
+    if (contextLength > 0) return '${(contextLength / 1024).round()}K ctx';
+    return '自适应 ctx';
+  }
+
   factory ModelSpec.fromJson(Map<String, dynamic> json) {
     return ModelSpec(
       id: json['id'] as String,

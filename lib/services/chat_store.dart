@@ -42,6 +42,22 @@ class ChatStore {
     await file.writeAsString(jsonEncode(trimmed.map((s) => s.toJson()).toList()));
   }
 
+  Future<Map<String, dynamic>> loadPreferences() async {
+    try {
+      final file = File(p.join((await _root()).path, 'ui.json'));
+      if (!await file.exists()) return {};
+      final raw = jsonDecode(await file.readAsString());
+      return (raw as Map).cast<String, dynamic>();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> savePreferences(Map<String, dynamic> prefs) async {
+    final file = File(p.join((await _root()).path, 'ui.json'));
+    await file.writeAsString(jsonEncode(prefs));
+  }
+
   Future<EngineSettings> loadSettings() async {
     try {
       final file = File(p.join((await _root()).path, 'settings.json'));

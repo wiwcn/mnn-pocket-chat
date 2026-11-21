@@ -34,7 +34,7 @@ class MnnPocketApp extends StatelessWidget {
             dynamic: store.dynamicColor ? darkDynamic : null,
           );
           return MaterialApp(
-            title: 'MNN Pocket',
+            title: 'Pocket Chat',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.build(light),
             darkTheme: AppTheme.build(dark),

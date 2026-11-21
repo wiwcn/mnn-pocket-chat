@@ -5,9 +5,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/models.dart';
+import '../services/background_downloads.dart';
 import '../services/chat_store.dart';
 import '../services/mnn_engine.dart';
 import '../services/model_downloader.dart';
@@ -49,7 +49,7 @@ class AppStore extends ChangeNotifier {
   final ValueNotifier<bool> oledNotifier = ValueNotifier<bool>(false);
 
   String? _streamingSessionId;
-  SharedPreferences? _prefs;
+  Map<String, dynamic> _prefs = {};
   final Map<String, DateTime> _downloadTicks = {};
 
   ModelSpec? specFor(String id) {
@@ -66,14 +66,14 @@ class AppStore extends ChangeNotifier {
     if (!booting) return;
     await engine.initialize();
     _engineSub = engine.events.listen(_onEngineEvent);
-    _prefs = await SharedPreferences.getInstance();
+    _prefs = await _store.loadPreferences();
     themeMode = ThemeMode.values.firstWhere(
-      (m) => m.name == (_prefs?.getString('themeMode') ?? 'system'),
+      (m) => m.name == (_prefs['themeMode'] as String? ?? 'system'),
       orElse: () => ThemeMode.system,
     );
-    dynamicColor = _prefs?.getBool('dynamicColor') ?? false;
-    themeSeed = _prefs?.getInt('themeSeed') ?? 0xFF1A6B51;
-    oled = _prefs?.getBool('oledMode') ?? false;
+    dynamicColor = _prefs['dynamicColor'] as bool? ?? false;
+    themeSeed = _prefs['themeSeed'] as int? ?? 0xFF1A6B51;
+    oled = _prefs['oledMode'] as bool? ?? false;
     themeModeNotifier.value = themeMode;
     dynamicColorNotifier.value = dynamicColor;
     themeSeedNotifier.value = themeSeed;
@@ -103,28 +103,32 @@ class AppStore extends ChangeNotifier {
   Future<void> setThemeMode(ThemeMode mode) async {
     themeMode = mode;
     themeModeNotifier.value = mode;
-    await _prefs?.setString('themeMode', mode.name);
+    _prefs['themeMode'] = mode.name;
+    await _store.savePreferences(_prefs);
     notifyListeners();
   }
 
   Future<void> setDynamicColor(bool value) async {
     dynamicColor = value;
     dynamicColorNotifier.value = value;
-    await _prefs?.setBool('dynamicColor', value);
+    _prefs['dynamicColor'] = value;
+    await _store.savePreferences(_prefs);
     notifyListeners();
   }
 
   Future<void> setThemeSeed(int value) async {
     themeSeed = value;
     themeSeedNotifier.value = value;
-    await _prefs?.setInt('themeSeed', value);
+    _prefs['themeSeed'] = value;
+    await _store.savePreferences(_prefs);
     notifyListeners();
   }
 
   Future<void> setOled(bool value) async {
     oled = value;
     oledNotifier.value = value;
-    await _prefs?.setBool('oledMode', value);
+    _prefs['oledMode'] = value;
+    await _store.savePreferences(_prefs);
     notifyListeners();
   }
 
@@ -162,6 +166,12 @@ class AppStore extends ChangeNotifier {
     if (downloads.containsKey(spec.id)) return null;
     _cancelled.remove(spec.id);
     try {
+      unawaited(BackgroundDownloads.ensurePermission());
+      unawaited(BackgroundDownloads.start(
+        title: '正在下载 ${spec.name}',
+        text: '准备中…',
+        progress: -1,
+      ));
       final files = await _downloader.listFiles(spec);
       final dir = await _store.modelDir(spec.id);
       final root = Directory(dir);
@@ -177,6 +187,7 @@ class AppStore extends ChangeNotifier {
         destDir: dir,
         onProgress: (progress) {
           downloads[spec.id] = _withSpeed(spec.id, progress);
+          _updateDownloadNotification();
           notifyListeners();
         },
         isCancelled: () => _cancelled.contains(spec.id),
@@ -184,16 +195,19 @@ class AppStore extends ChangeNotifier {
       installed.add(spec.id);
       downloads.remove(spec.id);
       _downloadTicks.remove(spec.id);
+      _stopDownloadNotificationIfIdle();
       notifyListeners();
       return null;
     } on DownloadCancelled {
       downloads.remove(spec.id);
       _downloadTicks.remove(spec.id);
+      _stopDownloadNotificationIfIdle();
       notifyListeners();
       return '已取消下载';
     } catch (e) {
       downloads.remove(spec.id);
       _downloadTicks.remove(spec.id);
+      _stopDownloadNotificationIfIdle();
       notifyListeners();
       return '下载失败：$e';
     }
@@ -203,7 +217,32 @@ class AppStore extends ChangeNotifier {
     _cancelled.add(id);
     downloads.remove(id);
     _downloadTicks.remove(id);
+    _stopDownloadNotificationIfIdle();
     notifyListeners();
+  }
+
+  /// 将所有进行中下载的已接收/总字节聚合成一条通知进度。
+  void _updateDownloadNotification() {
+    if (downloads.isEmpty) return;
+    var received = 0;
+    var total = 0;
+    for (final progress in downloads.values) {
+      received += progress.received;
+      total += progress.total;
+    }
+    final percent = total <= 0
+        ? 0
+        : ((received * 100) / total).round().clamp(0, 100).toInt();
+    final text = downloads.length == 1
+        ? '${specFor(downloads.keys.first)?.name ?? '模型'} · $percent%'
+        : '${downloads.length} 个模型 · $percent%';
+    unawaited(BackgroundDownloads.update(progress: percent, text: text));
+  }
+
+  void _stopDownloadNotificationIfIdle() {
+    if (downloads.isEmpty) {
+      unawaited(BackgroundDownloads.stop());
+    }
   }
 
   Future<void> deleteModel(ModelSpec spec) async {

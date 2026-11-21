@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/models.dart';
+import '../../services/system_links.dart';
 import '../../state/app_store.dart';
 import '../models/models_view.dart';
 import '../widgets/model_icon.dart';
@@ -26,6 +27,10 @@ class _SettingsViewState extends State<SettingsView> {
   late int _topK = widget.store.settings.topK.clamp(1, 100).toInt();
   late int _threads = widget.store.settings.threads.clamp(1, 8).toInt();
   late String _backend = widget.store.settings.backend;
+
+  Future<void> _open(String url) async {
+    await SystemLinks.openUrl(url);
+  }
 
   void _persist() {
     final settings = widget.store.settings
@@ -222,9 +227,9 @@ class _SettingsViewState extends State<SettingsView> {
                         children: [
                           SettingItem(
                             title: '本地模型',
-                            description: '${store.catalog.length} 个 ≤1B 端侧模型',
+                            description: '${store.catalog.length} 个可离线运行的模型',
                             leading: ModelIcon(
-                              name: installedModel?.name ?? 'MNN Pocket',
+                              name: installedModel?.name ?? 'Pocket Chat',
                               vendor: installedModel?.vendor ?? 'Alibaba MNN',
                             ),
                             onTap: () => Navigator.of(context).push(
@@ -323,10 +328,17 @@ class _SettingsViewState extends State<SettingsView> {
                       SettingsSection(
                         title: '关于',
                         children: [
-                          const SettingItem(title: '版本', description: '0.3.0'),
-                          const SettingItem(
+                          const SettingItem(title: '版本', description: '1.0.0'),
+                          SettingItem(
                             title: 'GitHub',
-                            description: 'github.com/Taewan-P/gpt_mobile',
+                            description: 'github.com/wiwcn/pocket-chat',
+                            onTap: () => _open('https://github.com/wiwcn/pocket-chat'),
+                          ),
+                          SettingItem(
+                            title: '界面参考',
+                            description: 'Taewan-P/gpt_mobile',
+                            onTap: () =>
+                                _open('https://github.com/Taewan-P/gpt_mobile'),
                           ),
                         ],
                       ),

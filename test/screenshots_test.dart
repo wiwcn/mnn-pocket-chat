@@ -270,12 +270,12 @@ void main() {
 
   testWidgets('home', (tester) async {
     final store = _homeStore();
-    await shot(tester, store, RootShell(store: store), 'v4_home');
+    await shot(tester, store, RootShell(store: store), 'v5_home');
   }, skip: skip);
 
   testWidgets('chat', (tester) async {
     final store = _chatStore();
-    await shot(tester, store, ChatView(store: store), 'v4_chat');
+    await shot(tester, store, ChatView(store: store), 'v5_chat');
   }, skip: skip);
 
   testWidgets('settings', (tester) async {
@@ -284,13 +284,13 @@ void main() {
       tester,
       store,
       SettingsView(store: store),
-      'v4_settings',
+      'v5_settings',
     );
   }, skip: skip);
 
   testWidgets('models', (tester) async {
     final store = _modelsStore();
-    await shot(tester, store, ModelsView(store: store), 'v4_models');
+    await shot(tester, store, ModelsView(store: store), 'v5_models');
   }, skip: skip);
 
   testWidgets('oled', (tester) async {
@@ -300,7 +300,7 @@ void main() {
       tester,
       store,
       SettingsView(store: store),
-      'v4_oled',
+      'v5_oled',
       theme: AppTheme.build(
         AppTheme.schemeFor(
           brightness: Brightness.dark,
@@ -319,7 +319,7 @@ void main() {
       tester,
       store,
       ChatView(store: store),
-      'v4_vision_chat',
+      'v5_vision_chat',
       localImages: [imagePath],
     );
   }, skip: skip);
