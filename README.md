@@ -21,15 +21,15 @@
 
 | 对话 | 聊天 |
 | :-: | :-: |
-| <img src="screenshots/brand_home.png" width="230"/> | <img src="screenshots/brand_chat.png" width="230"/> |
+| <img src="screenshots/brand2_home.png" width="230"/> | <img src="screenshots/brand2_chat.png" width="230"/> |
 
 | 设置 | 本地模型 |
 | :-: | :-: |
-| <img src="screenshots/brand_settings.png" width="230"/> | <img src="screenshots/brand_models.png" width="230"/> |
+| <img src="screenshots/brand2_settings.png" width="230"/> | <img src="screenshots/brand2_models.png" width="230"/> |
 
 | OLED 纯黑 |
 | :-: |
-| <img src="screenshots/brand_oled.png" width="230"/> |
+| <img src="screenshots/brand2_oled.png" width="230"/> |
 
 
 ## 为什么原版 MNN Chat 不支持 MNN-Pocket-0.3B？
