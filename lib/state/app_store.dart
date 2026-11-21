@@ -35,6 +35,9 @@ class AppStore extends ChangeNotifier {
   bool generating = false;
   bool stopping = false;
   String? engineError;
+  /// 模型加载过程的可见提示（"正在加载…" / "已就绪"）。
+  String? loadHint;
+  Timer? _loadHintTimer;
   int tabIndex = 0;
   ThemeMode themeMode = ThemeMode.system;
   bool dynamicColor = false;
@@ -281,27 +284,55 @@ class AppStore extends ChangeNotifier {
     if (activeModel?.id == spec.id && modelReady) return true;
     modelLoading = true;
     engineError = null;
+    loadHint = '正在加载 ${spec.name}…';
     notifyListeners();
     try {
       await engine.release();
       final path = await _configPath(spec);
-      final ok = await engine.load(
+      // 用应用私有目录作为 mmap 临时路径，降低大模型推理时的内存峰值。
+      String? mmapDir;
+      try {
+        final root = await _store.modelsDir();
+        mmapDir = p.join(root.path, '.mmap');
+        await Directory(mmapDir).create(recursive: true);
+      } catch (_) {
+        mmapDir = null;
+      }
+
+      var ok = await engine.load(
         configPath: path,
-        overridesJson: settings.encodeOverrides(spec),
+        overridesJson: settings.encodeOverrides(spec, mmapDir: mmapDir),
       );
+      // 部分模型/设备不支持 mmap，回退到整块加载再试一次。
+      if (!ok && mmapDir != null) {
+        ok = await engine.load(
+          configPath: path,
+          overridesJson: settings.encodeOverrides(spec),
+        );
+      }
       if (!ok) {
         activeModel = null;
         modelReady = false;
         engineError = '模型加载失败：请确认文件完整，或尝试降低线程数';
+        loadHint = null;
         return false;
       }
       activeModel = spec;
       modelReady = true;
+      loadHint = '${spec.name} 已就绪';
+      _loadHintTimer?.cancel();
+      _loadHintTimer = Timer(const Duration(seconds: 3), () {
+        if (loadHint == '${spec.name} 已就绪') {
+          loadHint = null;
+          notifyListeners();
+        }
+      });
       return true;
     } catch (e) {
       activeModel = null;
       modelReady = false;
       engineError = '模型加载失败：$e';
+      loadHint = null;
       return false;
     } finally {
       modelLoading = false;
@@ -491,6 +522,7 @@ class AppStore extends ChangeNotifier {
 
   @override
   void dispose() {
+    _loadHintTimer?.cancel();
     _engineSub?.cancel();
     engine.dispose();
     _downloader.dispose();

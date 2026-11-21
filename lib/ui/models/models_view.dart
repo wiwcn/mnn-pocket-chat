@@ -265,7 +265,52 @@ class _ModelsViewState extends State<ModelsView> {
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 24)));
 
         return Scaffold(
-          body: CustomScrollView(slivers: slivers),
+          body: Stack(
+            children: [
+              CustomScrollView(slivers: slivers),
+              if (store.modelLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surface
+                        .withValues(alpha: 0.72),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            store.loadHint ?? '正在加载模型…',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '首次加载需要一些时间，请稍候',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

@@ -285,8 +285,8 @@ class EngineSettings {
     );
   }
 
-  String encodeOverrides(ModelSpec model) {
-    return jsonEncode({
+  String encodeOverrides(ModelSpec model, {String? mmapDir}) {
+    final overrides = <String, dynamic>{
       'backend_type': backend,
       'thread_num': threads,
       'precision': 'low',
@@ -302,7 +302,14 @@ class EngineSettings {
       'presence_penalty': 0.0,
       'frequency_penalty': 0.0,
       'max_new_tokens': maxNewTokens,
-    });
+    };
+    // 大模型默认用 mmap 加载权重，避免整块读入内存导致 OOM 闪退。
+    // tmp_path 指向应用私有可写目录，MNN 用于放置 mmap 临时文件。
+    if (mmapDir != null && mmapDir.isNotEmpty) {
+      overrides['use_mmap'] = true;
+      overrides['tmp_path'] = mmapDir;
+    }
+    return jsonEncode(overrides);
   }
 }
 

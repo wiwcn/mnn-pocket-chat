@@ -392,6 +392,10 @@ Java_ai_mnn_pocket_MnnLlmBridge_nativeGenerate(
 
     session->stop.store(false);
     StreamState state;
+    // 将 token 出口绑定到 Java 回调：此前 onToken 从未赋值，流式输出完全失效。
+    state.onToken = [&callback](const std::string& text) {
+        callback.emitToken(text);
+    };
     Utf8Processor processor(
         [&state](const std::string& chunk) { state.feed(chunk); });
     LlmStreamBuffer streamBuffer(

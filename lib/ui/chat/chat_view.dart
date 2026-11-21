@@ -186,6 +186,37 @@ class _ChatViewState extends State<ChatView> {
             top: false,
             child: Column(
               children: [
+                if (store.loadHint != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+                    child: Row(
+                      children: [
+                        if (store.modelLoading)
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: scheme.primary,
+                            ),
+                          )
+                        else
+                          Icon(Icons.check_circle_outline,
+                              size: 15, color: scheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            store.loadHint!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: text.bodySmall?.copyWith(
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (store.engineError != null)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
