@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models.dart';
 import '../../state/app_store.dart';
 import '../models/models_view.dart';
-import '../widgets/brand_logo.dart';
+import '../widgets/model_icon.dart';
 import '../widgets/common.dart';
 
 class SettingsView extends StatefulWidget {
@@ -223,7 +223,8 @@ class _SettingsViewState extends State<SettingsView> {
                           SettingItem(
                             title: '本地模型',
                             description: '${store.catalog.length} 个 ≤1B 端侧模型',
-                            leading: BrandLogo(
+                            leading: ModelIcon(
+                              name: installedModel?.name ?? 'MNN Pocket',
                               vendor: installedModel?.vendor ?? 'Alibaba MNN',
                             ),
                             onTap: () => Navigator.of(context).push(

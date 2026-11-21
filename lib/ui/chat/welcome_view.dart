@@ -5,7 +5,7 @@ import '../../core/models.dart';
 import '../../state/app_store.dart';
 import '../models/models_view.dart';
 import '../settings/settings_view.dart';
-import '../widgets/brand_logo.dart';
+import '../widgets/model_icon.dart';
 import 'chat_view.dart';
 
 /// gpt_mobile HomeScreen 的 Flutter 版本：对话列表 + 搜索 + 设置入口。
@@ -271,7 +271,7 @@ class _SessionItem extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
                   children: [
-                    BrandLogo(vendor: vendor),
+                    ModelIcon(name: session.modelName, vendor: vendor),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(

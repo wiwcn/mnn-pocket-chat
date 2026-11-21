@@ -9,13 +9,15 @@
 - 6 种主题色、OLED 纯黑、动态取色、浅色/深色
 - 模型标签筛选、厂商标识、已安装优先排序
 - 可调上下文长度 / temperature / top-p / top-k / 线程数
-- 仅 `arm64-v8a`，`minSdk 26`（当前版本 0.3.0）
+- 仅 `arm64-v8a`，`minSdk 26`（当前版本 0.3.1）
 
 ## 界面
 
 视觉参考 [Taewan-P/gpt_mobile](https://github.com/Taewan-P/gpt_mobile)，配色、圆角与列表结构均按原版 Compose 源码逐项还原。
 
-支持主题色切换、OLED 纯黑模式、厂商官方 logo、模型标签筛选、实测生成速度与上下文长度调节。
+支持主题色切换、OLED 纯黑模式、模型标签筛选、实测生成速度与上下文长度调节。
+
+模型图标采用与 [Kelivo](https://github.com/Chevey339/kelivo) 相同的解析思路：按模型名与厂商名正则匹配品牌，渲染为主色圆形底 + 品牌标识，未知模型回退首字母。图标素材来自 LobeHub Icons（MIT）与各厂商官方渠道，商标归各自所有者。
 
 | 对话 | 聊天 |
 | :-: | :-: |

@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/models.dart';
 import '../../state/app_store.dart';
-import '../widgets/brand_logo.dart';
+import '../widgets/model_icon.dart';
 import 'message_bubble.dart';
 
 class ChatView extends StatefulWidget {
@@ -141,7 +141,7 @@ class _ChatViewState extends State<ChatView> {
                     ),
                   );
                 },
-                icon: BrandLogo(vendor: modelVendor, size: 28),
+                icon: ModelIcon(name: modelName, vendor: modelVendor, size: 28),
               ),
               PopupMenuButton<String>(
                 tooltip: '更多',

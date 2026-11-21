@@ -11,7 +11,7 @@ import 'package:mnn_pocket_chat/ui/chat/chat_view.dart';
 import 'package:mnn_pocket_chat/ui/models/models_view.dart';
 import 'package:mnn_pocket_chat/ui/root_shell.dart';
 import 'package:mnn_pocket_chat/ui/settings/settings_view.dart';
-import 'package:mnn_pocket_chat/ui/widgets/brand_logo.dart';
+import 'package:mnn_pocket_chat/ui/widgets/model_icon.dart';
 
 const _fontDir = '/opt/flutter/flutter/bin/cache/artifacts/material_fonts';
 const _cjkFont = '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc';
@@ -187,17 +187,7 @@ void main() {
       await tester.pumpWidget(_app(store, home, theme: theme));
       await tester.runAsync(() async {
         final context = tester.element(find.byType(MaterialApp));
-        for (final vendor in const [
-          'Alibaba MNN',
-          'Qwen',
-          'OpenBMB',
-          'Tencent',
-          'Baidu',
-          'HuggingFace',
-          'Meta',
-        ]) {
-          final asset = BrandLogo.assetFor(vendor);
-          if (asset == null) continue;
+        for (final asset in ModelBrand.assets) {
           await precacheImage(
             AssetImage(asset, bundle: DefaultAssetBundle.of(context)),
             context,

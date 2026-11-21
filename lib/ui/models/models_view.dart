@@ -4,7 +4,7 @@ import '../../core/format.dart';
 import '../../core/models.dart';
 import '../../state/app_store.dart';
 import '../chat/chat_view.dart';
-import '../widgets/brand_logo.dart';
+import '../widgets/model_icon.dart';
 import '../widgets/common.dart';
 
 class ModelsView extends StatefulWidget {
@@ -340,7 +340,7 @@ class _ModelItem extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  BrandLogo(vendor: model.vendor),
+                  ModelIcon(name: model.name, vendor: model.vendor),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
