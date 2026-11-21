@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/format.dart';
 import '../../core/models.dart';
-import '../widgets/common.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -20,11 +18,7 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (message.isUser) return _UserBubble(message: message);
-    return _AssistantBubble(
-      message: message,
-      streaming: streaming,
-      modelName: modelName,
-    );
+    return _AssistantMessage(message: message, streaming: streaming);
   }
 }
 
@@ -38,29 +32,22 @@ class _UserBubble extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Align(
       alignment: Alignment.centerRight,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 56, bottom: 14),
-        child: GestureDetector(
-          onLongPress: () => _copy(context, message.content),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(10),
-              ),
-            ),
-            child: SelectableText(
-              message.content,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: scheme.onPrimaryContainer,
-                    fontSize: 14.5,
-                    height: 1.5,
-                  ),
-            ),
+      child: GestureDetector(
+        onLongPress: () => _copy(context, message.content),
+        child: Container(
+          margin: const EdgeInsets.only(left: 64, bottom: 20),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+          decoration: BoxDecoration(
+            color: scheme.secondaryContainer,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SelectableText(
+            message.content,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: scheme.onSecondaryContainer,
+                  fontSize: 14.5,
+                  height: 1.5,
+                ),
           ),
         ),
       ),
@@ -68,138 +55,81 @@ class _UserBubble extends StatelessWidget {
   }
 }
 
-class _AssistantBubble extends StatelessWidget {
-  const _AssistantBubble({
+class _AssistantMessage extends StatelessWidget {
+  const _AssistantMessage({
     required this.message,
     required this.streaming,
-    required this.modelName,
   });
 
   final ChatMessage message;
   final bool streaming;
-  final String modelName;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final parts = splitThinking(message.content);
     final showThinking = parts.thinking.trim().isNotEmpty;
     final answer = parts.answer;
     final waitingFirstToken = streaming && message.content.isEmpty;
 
     return Padding(
-      padding: const EdgeInsets.only(right: 18, bottom: 18),
-      child: Row(
+      padding: const EdgeInsets.only(right: 12, bottom: 20),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: RoundIcon(
-              icon: Icons.auto_awesome_rounded,
-              size: 30,
-              iconSize: 15,
+          if (showThinking)
+            _ThinkingSection(
+              thinking: parts.thinking,
+              open: streaming && answer.isEmpty,
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (showThinking)
-                  _ThinkingBox(
-                    thinking: parts.thinking,
-                    open: streaming && answer.isEmpty,
-                  ),
-                if (waitingFirstToken)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: TypingDots(),
-                  )
-                else if (answer.trim().isNotEmpty)
-                  GestureDetector(
-                    onLongPress: () => _copy(context, answer),
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
-                      decoration: BoxDecoration(
-                        color: scheme.surfaceContainerLowest,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          topRight: Radius.circular(24),
-                          bottomLeft: Radius.circular(24),
-                          bottomRight: Radius.circular(24),
-                        ),
-                        border: Border.all(
-                          color:
-                              scheme.outlineVariant.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: StreamingMarkdown(
-                        answer: answer,
-                        streaming: streaming,
-                      ),
-                    ),
-                  ),
-                if (message.stats != null && !streaming)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6, left: 4),
-                    child: Row(
-                      children: [
-                        Icon(Icons.bolt_rounded,
-                            size: 13, color: scheme.onSurfaceVariant),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${formatSpeed(message.stats!.decodeTps)} · '
-                          '${message.stats!.outputTokens} tokens',
-                          style: text.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
-                        ),
-                        const Spacer(),
-                        SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                            tooltip: '复制',
-                            iconSize: 15,
-                            color: scheme.onSurfaceVariant,
-                            onPressed: () => _copy(
-                              context,
-                              answer.isEmpty ? message.content : answer,
-                            ),
-                            icon: const Icon(Icons.copy_rounded),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+          if (waitingFirstToken)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: TypingDots(),
+            )
+          else if (answer.trim().isNotEmpty)
+            GestureDetector(
+              onLongPress: () => _copy(context, answer),
+              child: StreamingMarkdown(answer: answer, streaming: streaming),
             ),
-          ),
+          if (!streaming && answer.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: '复制',
+                  iconSize: 16,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  onPressed: () => _copy(context, answer),
+                  icon: const Icon(Icons.copy_rounded),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _ThinkingBox extends StatefulWidget {
-  const _ThinkingBox({required this.thinking, required this.open});
+class _ThinkingSection extends StatefulWidget {
+  const _ThinkingSection({required this.thinking, required this.open});
 
   final String thinking;
   final bool open;
 
   @override
-  State<_ThinkingBox> createState() => _ThinkingBoxState();
+  State<_ThinkingSection> createState() => _ThinkingSectionState();
 }
 
-class _ThinkingBoxState extends State<_ThinkingBox> {
+class _ThinkingSectionState extends State<_ThinkingSection> {
   late bool _open = widget.open;
 
   @override
-  void didUpdateWidget(covariant _ThinkingBox oldWidget) {
+  void didUpdateWidget(covariant _ThinkingSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.open && !oldWidget.open) _open = true;
   }
@@ -209,74 +139,48 @@ class _ThinkingBoxState extends State<_ThinkingBox> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHigh.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => setState(() => _open = !_open),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(13, 9, 9, 9),
-                child: Row(
-                  children: [
-                    Icon(Icons.psychology_alt_rounded,
-                        size: 16, color: scheme.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text(
-                      '思考过程',
-                      style: text.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => setState(() => _open = !_open),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '思考过程',
+                    style: text.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
-                    if (widget.open && widget.thinking.trim().isEmpty) ...[
-                      const SizedBox(width: 8),
-                      const SizedBox(
-                        width: 9,
-                        height: 9,
-                        child: CircularProgressIndicator(strokeWidth: 1.4),
-                      ),
-                    ],
-                    const Spacer(),
-                    AnimatedRotation(
-                      turns: _open ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 180),
-                      child: Icon(Icons.expand_more_rounded,
-                          size: 19, color: scheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            AnimatedCrossFade(
-              firstChild: const SizedBox(width: double.infinity),
-              secondChild: Padding(
-                padding: const EdgeInsets.fromLTRB(13, 0, 13, 12),
-                child: SelectableText(
-                  widget.thinking.trim(),
-                  style: text.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.5,
                   ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    _open
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_open)
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 8),
+              child: SelectableText(
+                widget.thinking.trim(),
+                style: text.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.5,
                 ),
               ),
-              crossFadeState: _open
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 200),
-              sizeCurve: Curves.easeOutCubic,
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -325,7 +229,7 @@ class StreamingMarkdown extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh.withValues(alpha: 0.55),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +243,7 @@ class StreamingMarkdown extends StatelessWidget {
                       color: scheme.onSurfaceVariant,
                       fontSize: 9.5,
                       letterSpacing: 0.5,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -379,8 +283,8 @@ class StreamingCursor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 8,
-      height: 16,
+      width: 7,
+      height: 15,
       margin: const EdgeInsets.only(top: 5),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
@@ -401,11 +305,11 @@ class TypingDots extends StatelessWidget {
       children: [
         for (var i = 0; i < 3; i++)
           Container(
-            width: 7,
-            height: 7,
-            margin: const EdgeInsets.only(right: 5),
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(right: 4),
             decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.4 + i * 0.2),
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
           ),
@@ -414,7 +318,7 @@ class TypingDots extends StatelessWidget {
   }
 }
 
-/// 轻量渲染 **加粗**，避免小模型输出中的星号直接暴露在气泡里。
+/// 轻量渲染 **加粗**，避免小模型输出中的星号直接暴露在文本里。
 Widget _richChunk(String raw, TextStyle? style) {
   final spans = <TextSpan>[];
   var index = 0;

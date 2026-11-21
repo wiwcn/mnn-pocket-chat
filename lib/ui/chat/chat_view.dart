@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../../core/models.dart';
 import '../../state/app_store.dart';
-import '../widgets/common.dart';
 import 'message_bubble.dart';
 import 'session_sheet.dart';
 
@@ -48,11 +47,6 @@ class _ChatViewState extends State<ChatView> {
     _atBottom = true;
   }
 
-  void _useSuggestion(String value) {
-    _input.text = value;
-    _send();
-  }
-
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
@@ -68,59 +62,52 @@ class _ChatViewState extends State<ChatView> {
       }
     });
 
-    return Column(
-      children: [
-        _ChatHeader(store: store),
-        if (store.engineError != null)
-          _ErrorBanner(
-            message: store.engineError!,
-            onRetry: () {
-              final spec = store.activeModel ?? store.specFor(session.modelId);
-              if (spec != null) store.loadModel(spec);
-            },
-          ),
-        Expanded(
-          child: session.messages.isEmpty
-              ? _ChatEmpty(onSuggestion: _useSuggestion)
-              : ListView.builder(
-                  controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(
-                    kPagePadding,
-                    8,
-                    kPagePadding,
-                    16,
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surface,
+      child: Column(
+        children: [
+          _ChatHeader(store: store),
+          if (store.engineError != null)
+            _ErrorBanner(
+              message: store.engineError!,
+              onRetry: () {
+                final spec = store.activeModel ?? store.specFor(session.modelId);
+                if (spec != null) store.loadModel(spec);
+              },
+            ),
+          Expanded(
+            child: session.messages.isEmpty
+                ? const _ChatEmpty()
+                : ListView.builder(
+                    controller: _scroll,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    itemCount: session.messages.length,
+                    itemBuilder: (context, index) {
+                      final message = session.messages[index];
+                      return MessageBubble(
+                        message: message,
+                        modelName: session.modelName,
+                        streaming: store.generating &&
+                            index == session.messages.length - 1 &&
+                            message.role == ChatRole.assistant,
+                      );
+                    },
                   ),
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  itemCount: session.messages.length,
-                  itemBuilder: (context, index) {
-                    final message = session.messages[index];
-                    return MessageBubble(
-                      message: message,
-                      modelName: session.modelName,
-                      streaming: store.generating &&
-                          index == session.messages.length - 1 &&
-                          message.role == ChatRole.assistant,
-                    );
-                  },
-                ),
-        ),
-        AnimatedPadding(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.fromLTRB(
-            20,
-            0,
-            20,
-            keyboard ? 10 : 14,
           ),
-          child: _Composer(
-            store: store,
-            controller: _input,
-            onSend: _send,
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            padding: EdgeInsets.fromLTRB(12, 0, 12, keyboard ? 8 : 12),
+            child: _Composer(
+              store: store,
+              controller: _input,
+              onSend: _send,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -136,70 +123,41 @@ class _ChatHeader extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final session = store.activeSession!;
     final model = store.activeModel ?? store.specFor(session.modelId);
-    final status = store.generating
-        ? (store.stopping ? '停止中…' : '生成中')
-        : store.modelLoading
-            ? '加载模型中…'
-            : store.modelReady
-                ? '已就绪'
-                : '模型未加载';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
       child: Row(
         children: [
-          const RoundIcon(
-            icon: Icons.memory_rounded,
-            size: 42,
-            iconSize: 20,
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   session.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: text.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14.5,
+                  style: text.titleMedium?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: store.modelReady
-                            ? scheme.primary
-                            : scheme.onSurfaceVariant.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(
-                        '${model?.name ?? session.modelName} · $status',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: text.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  model?.name ?? session.modelName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 11.5,
+                  ),
                 ),
               ],
             ),
           ),
           _HeaderIcon(
             tooltip: '新对话',
-            icon: Icons.add_comment_rounded,
+            icon: Icons.add_comment_outlined,
             onPressed: store.newChat,
           ),
           _HeaderIcon(
@@ -254,7 +212,6 @@ class _HeaderIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: 38,
       height: 38,
@@ -262,7 +219,7 @@ class _HeaderIcon extends StatelessWidget {
         tooltip: tooltip,
         padding: EdgeInsets.zero,
         iconSize: 21,
-        color: scheme.onSurfaceVariant,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         onPressed: onPressed,
         icon: Icon(icon),
       ),
@@ -280,16 +237,16 @@ class _ErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 2, 20, 8),
-      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      margin: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
       decoration: BoxDecoration(
         color: scheme.errorContainer,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
           Icon(Icons.error_outline_rounded,
-              size: 17, color: scheme.onErrorContainer),
+              size: 16, color: scheme.onErrorContainer),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -312,78 +269,29 @@ class _ErrorBanner extends StatelessWidget {
 }
 
 class _ChatEmpty extends StatelessWidget {
-  const _ChatEmpty({required this.onSuggestion});
-
-  final ValueChanged<String> onSuggestion;
-
-  static const _suggestions = [
-    '用三句话介绍你自己',
-    '把这句话翻译成英文：端侧推理正在变快',
-    '用 Flutter 写一个 Hello World',
-  ];
+  const _ChatEmpty();
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        kPagePadding,
-        26,
-        kPagePadding,
-        20,
-      ),
-      children: [
-        Text('聊点什么？', style: text.headlineMedium),
-        const SizedBox(height: 8),
-        Text(
-          '所有推理都在本机完成，不会上传任何内容。',
-          style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 22),
-        GroupCard(
-          child: Column(
-            children: [
-              for (var i = 0; i < _suggestions.length; i++) ...[
-                if (i > 0) const GroupDivider(indent: 52),
-                InkWell(
-                  onTap: () => onSuggestion(_suggestions[i]),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer
-                                .withValues(alpha: 0.55),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.chat_bubble_outline_rounded,
-                            size: 15,
-                            color: scheme.onPrimaryContainer,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _suggestions[i],
-                            style: text.bodyMedium?.copyWith(height: 1.4),
-                          ),
-                        ),
-                        Icon(Icons.chevron_right_rounded,
-                            size: 18, color: scheme.onSurfaceVariant),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.chat_bubble_outline_rounded,
+            size: 34,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Text(
+            '开始新对话',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -406,20 +314,10 @@ class _Composer extends StatelessWidget {
         !store.generating &&
         store.modelReady;
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
+      padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(26),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -437,7 +335,7 @@ class _Composer extends StatelessWidget {
                   ),
               decoration: InputDecoration(
                 hintText: store.modelReady
-                    ? '发消息…'
+                    ? '发消息'
                     : store.modelLoading
                         ? '模型加载中…'
                         : '先选择一个模型',
@@ -447,32 +345,27 @@ class _Composer extends StatelessWidget {
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
           ),
           const SizedBox(width: 4),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            transitionBuilder: (child, animation) =>
-                ScaleTransition(scale: animation, child: child),
-            child: store.generating
-                ? _CircleAction(
-                    key: const ValueKey('stop'),
-                    color: scheme.error,
-                    icon: Icons.stop_rounded,
-                    onTap: store.stopGeneration,
-                  )
-                : _CircleAction(
-                    key: const ValueKey('send'),
-                    color: canSend
-                        ? scheme.primary
-                        : scheme.primary.withValues(alpha: 0.4),
-                    icon: Icons.arrow_upward_rounded,
-                    iconColor: scheme.onPrimary,
-                    onTap: canSend ? onSend : null,
-                  ),
-          ),
+          if (store.generating)
+            _CircleAction(
+              color: scheme.error,
+              icon: Icons.stop_rounded,
+              onTap: store.stopGeneration,
+            )
+          else
+            _CircleAction(
+              color: canSend
+                  ? scheme.primary
+                  : scheme.primary.withValues(alpha: 0.35),
+              icon: Icons.arrow_upward_rounded,
+              iconColor: scheme.onPrimary,
+              onTap: canSend ? onSend : null,
+            ),
+          const SizedBox(width: 2),
         ],
       ),
     );
@@ -481,7 +374,6 @@ class _Composer extends StatelessWidget {
 
 class _CircleAction extends StatelessWidget {
   const _CircleAction({
-    super.key,
     required this.color,
     required this.icon,
     this.iconColor,
@@ -495,13 +387,13 @@ class _CircleAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SpringScale(
+    return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Icon(icon, color: iconColor ?? Colors.white, size: 22),
+        child: Icon(icon, color: iconColor ?? Colors.white, size: 21),
       ),
     );
   }
