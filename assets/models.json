@@ -1,0 +1,254 @@
+[
+  {
+    "id": "MNN-Pocket-0.3B-MNN",
+    "name": "MNN Pocket 0.3B",
+    "vendor": "Alibaba MNN",
+    "paramsB": 0.3,
+    "sizeBytes": 174149042,
+    "contextLength": 32768,
+    "quant": "INT4 QAT",
+    "description": "与 MNN 引擎协同设计的手机原生模型。173MB，32K 上下文，中英文指令跟随，为端侧 App 任务而生。",
+    "tags": [
+      "推荐",
+      "极速",
+      "中英"
+    ],
+    "modelScopeRepo": "MNN/MNN-Pocket-0.3B-MNN",
+    "hfRepo": "taobao-mnn/MNN-Pocket-0.3B-MNN",
+    "accent": "#00875A",
+    "recommended": true,
+    "temperature": 0.8,
+    "topP": 0.8,
+    "topK": 20
+  },
+  {
+    "id": "Qwen3-0.6B-MNN",
+    "name": "Qwen3 0.6B",
+    "vendor": "Qwen",
+    "paramsB": 0.6,
+    "sizeBytes": 454473462,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "Qwen3 系列最小尺寸，支持思考模式开关，中文能力在同尺寸中突出。",
+    "tags": [
+      "思考",
+      "中英"
+    ],
+    "modelScopeRepo": "MNN/Qwen3-0.6B-MNN",
+    "hfRepo": "taobao-mnn/Qwen3-0.6B-MNN",
+    "accent": "#2E7D32",
+    "recommended": true,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "Qwen2.5-0.5B-Instruct-MNN",
+    "name": "Qwen2.5 0.5B",
+    "vendor": "Qwen",
+    "paramsB": 0.5,
+    "sizeBytes": 556808791,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "成熟稳定的 0.5B 指令模型，适合轻量问答、改写与信息抽取。",
+    "tags": [
+      "稳定",
+      "中英"
+    ],
+    "modelScopeRepo": "MNN/Qwen2.5-0.5B-Instruct-MNN",
+    "hfRepo": "taobao-mnn/Qwen2.5-0.5B-Instruct-MNN",
+    "accent": "#00695C",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "MiniCPM4-0.5B-MNN",
+    "name": "MiniCPM4 0.5B",
+    "vendor": "OpenBMB",
+    "paramsB": 0.5,
+    "sizeBytes": 311061970,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "面壁智能端侧小模型，中文知识密度高，体积仅约 300MB。",
+    "tags": [
+      "中文",
+      "高密度"
+    ],
+    "modelScopeRepo": "MNN/MiniCPM4-0.5B-MNN",
+    "hfRepo": "taobao-mnn/MiniCPM4-0.5B-MNN",
+    "accent": "#388E3C",
+    "recommended": true,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "Hunyuan-0.5B-Instruct-MNN",
+    "name": "Hunyuan 0.5B",
+    "vendor": "Tencent",
+    "paramsB": 0.5,
+    "sizeBytes": 401753427,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "腾讯混元 0.5B 指令模型，支持混合思考模式，中文对话自然。",
+    "tags": [
+      "思考",
+      "中文"
+    ],
+    "modelScopeRepo": "MNN/Hunyuan-0.5B-Instruct-MNN",
+    "hfRepo": "taobao-mnn/Hunyuan-0.5B-Instruct-MNN",
+    "accent": "#1B5E20",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "ERNIE-4.5-0.3B-PT-MNN",
+    "name": "ERNIE 4.5 0.3B",
+    "vendor": "Baidu",
+    "paramsB": 0.3,
+    "sizeBytes": 281543451,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "百度文心 0.3B 预训练底座，适合作为垂类微调的端侧起点。",
+    "tags": [
+      "轻量",
+      "中文"
+    ],
+    "modelScopeRepo": "MNN/ERNIE-4.5-0.3B-PT-MNN",
+    "hfRepo": "taobao-mnn/ERNIE-4.5-0.3B-PT-MNN",
+    "accent": "#43A047",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "SmolLM2-360M-Instruct-MNN",
+    "name": "SmolLM2 360M",
+    "vendor": "HuggingFace",
+    "paramsB": 0.36,
+    "sizeBytes": 326006414,
+    "contextLength": 8192,
+    "quant": "INT4",
+    "description": "HuggingFace 出品的英文小模型，响应快，适合英文写作与摘要。",
+    "tags": [
+      "English",
+      "极速"
+    ],
+    "modelScopeRepo": "MNN/SmolLM2-360M-Instruct-MNN",
+    "hfRepo": "taobao-mnn/SmolLM2-360M-Instruct-MNN",
+    "accent": "#00796B",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "SmolLM2-135M-Instruct-MNN",
+    "name": "SmolLM2 135M",
+    "vendor": "HuggingFace",
+    "paramsB": 0.135,
+    "sizeBytes": 145127368,
+    "contextLength": 8192,
+    "quant": "INT4",
+    "description": "仅 145MB 的英文模型，适合做输入联想、分类与极低延迟 Demo。",
+    "tags": [
+      "English",
+      "超小"
+    ],
+    "modelScopeRepo": "MNN/SmolLM2-135M-Instruct-MNN",
+    "hfRepo": "taobao-mnn/SmolLM2-135M-Instruct-MNN",
+    "accent": "#33691E",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "MobileLLM-125M-MNN",
+    "name": "MobileLLM 125M",
+    "vendor": "Meta",
+    "paramsB": 0.125,
+    "sizeBytes": 119783520,
+    "contextLength": 4096,
+    "quant": "INT4",
+    "description": "Meta 面向移动端设计的极小模型，占用仅 120MB，适合功能型任务。",
+    "tags": [
+      "超小",
+      "English"
+    ],
+    "modelScopeRepo": "MNN/MobileLLM-125M-MNN",
+    "hfRepo": "taobao-mnn/MobileLLM-125M-MNN",
+    "accent": "#2E7D32",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "MobileLLM-350M-MNN",
+    "name": "MobileLLM 350M",
+    "vendor": "Meta",
+    "paramsB": 0.35,
+    "sizeBytes": 282675592,
+    "contextLength": 4096,
+    "quant": "INT4",
+    "description": "MobileLLM 350M，英文对话质量优于 125M，体积仍然很小。",
+    "tags": [
+      "English",
+      "轻量"
+    ],
+    "modelScopeRepo": "MNN/MobileLLM-350M-MNN",
+    "hfRepo": "taobao-mnn/MobileLLM-350M-MNN",
+    "accent": "#388E3C",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "MobileLLM-600M-MNN",
+    "name": "MobileLLM 600M",
+    "vendor": "Meta",
+    "paramsB": 0.6,
+    "sizeBytes": 420065443,
+    "contextLength": 4096,
+    "quant": "INT4",
+    "description": "MobileLLM 600M，端侧英文理解与生成的均衡选择。",
+    "tags": [
+      "English"
+    ],
+    "modelScopeRepo": "MNN/MobileLLM-600M-MNN",
+    "hfRepo": "taobao-mnn/MobileLLM-600M-MNN",
+    "accent": "#1B5E20",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  },
+  {
+    "id": "Qwen2-0.5B-Instruct-MNN",
+    "name": "Qwen2 0.5B",
+    "vendor": "Qwen",
+    "paramsB": 0.5,
+    "sizeBytes": 558158931,
+    "contextLength": 32768,
+    "quant": "INT4",
+    "description": "Qwen2 0.5B 指令模型，兼容性经过大量端侧验证。",
+    "tags": [
+      "稳定",
+      "中英"
+    ],
+    "modelScopeRepo": "MNN/Qwen2-0.5B-Instruct-MNN",
+    "hfRepo": "taobao-mnn/Qwen2-0.5B-Instruct-MNN",
+    "accent": "#00695C",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40
+  }
+]
