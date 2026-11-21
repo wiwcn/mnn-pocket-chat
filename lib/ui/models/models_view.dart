@@ -4,12 +4,62 @@ import '../../core/format.dart';
 import '../../core/models.dart';
 import '../../state/app_store.dart';
 import '../chat/chat_view.dart';
+import '../widgets/brand_logo.dart';
 import '../widgets/common.dart';
 
-class ModelsView extends StatelessWidget {
+class ModelsView extends StatefulWidget {
   const ModelsView({super.key, required this.store});
 
   final AppStore store;
+
+  @override
+  State<ModelsView> createState() => _ModelsViewState();
+}
+
+class _ModelsViewState extends State<ModelsView> {
+  static const String _all = '全部';
+  static const String _installedFilter = '已安装';
+  static const String _recommended = '推荐';
+
+  String _filter = _all;
+
+  AppStore get store => widget.store;
+
+  List<String> _filters() {
+    final filters = <String>[_all, _installedFilter, _recommended];
+    for (final model in store.catalog) {
+      for (final tag in model.tags) {
+        if (tag == _recommended) continue;
+        if (!filters.contains(tag)) filters.add(tag);
+      }
+    }
+    return filters;
+  }
+
+  bool _matches(ModelSpec model) {
+    switch (_filter) {
+      case _all:
+        return true;
+      case _installedFilter:
+        return store.isInstalled(model.id);
+      case _recommended:
+        return model.recommended || model.tags.contains(_recommended);
+      default:
+        return model.tags.contains(_filter);
+    }
+  }
+
+  List<ModelSpec> _sortedModels() {
+    final models = store.catalog.where(_matches).toList();
+    models.sort((a, b) {
+      final installedA = store.isInstalled(a.id) ? 0 : 1;
+      final installedB = store.isInstalled(b.id) ? 0 : 1;
+      if (installedA != installedB) return installedA - installedB;
+      if (a.recommended != b.recommended) return a.recommended ? -1 : 1;
+      return a.paramsB.compareTo(b.paramsB);
+    });
+    return models;
+  }
 
   Future<void> _startChat(BuildContext context, ModelSpec model) async {
     await store.startChat(model);
@@ -51,10 +101,9 @@ class ModelsView extends StatelessWidget {
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {
-        final installed =
-            store.catalog.where((m) => store.isInstalled(m.id)).toList();
-        final available =
-            store.catalog.where((m) => !store.isInstalled(m.id)).toList();
+        final models = _sortedModels();
+        final installed = models.where((m) => store.isInstalled(m.id)).toList();
+        final available = models.where((m) => !store.isInstalled(m.id)).toList();
 
         return Scaffold(
           body: CustomScrollView(
@@ -73,41 +122,70 @@ class ModelsView extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Column(
                     children: [
-                      SettingsSection(
-                        title: '已安装',
-                        children: installed.isEmpty
-                            ? [_EmptyRow(label: '还没有已安装的模型')]
-                            : [
-                                for (final model in installed)
-                                  _ModelItem(
-                                    model: model,
-                                    installed: true,
-                                    progress: null,
-                                    onTap: () => _startChat(context, model),
-                                    onLongPress: () =>
-                                        _confirmDelete(context, model),
-                                    onDownload: null,
-                                  ),
-                              ],
+                      _FilterBar(
+                        filters: _filters(),
+                        selected: _filter,
+                        onSelect: (value) => setState(() => _filter = value),
                       ),
-                      const SizedBox(height: 24),
-                      SettingsSection(
-                        title: '可下载',
-                        children: available.isEmpty
-                            ? [_EmptyRow(label: '全部模型都已安装')]
-                            : [
-                                for (final model in available)
-                                  _ModelItem(
-                                    model: model,
-                                    installed: false,
-                                    progress: store.downloads[model.id],
-                                    onTap: store.downloads[model.id] == null
-                                        ? () => _download(context, model)
-                                        : null,
-                                    onLongPress: null,
-                                    onDownload: () => _download(context, model),
-                                  ),
-                              ],
+                      const SizedBox(height: 8),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 240),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        child: models.isEmpty
+                            ? _EmptyResult(
+                                key: ValueKey('empty-$_filter'),
+                                onClear: _filter == _all
+                                    ? null
+                                    : () => setState(() => _filter = _all),
+                              )
+                            : Column(
+                                key: ValueKey(_filter),
+                                children: [
+                                  if (installed.isNotEmpty)
+                                    SettingsSection(
+                                      title: '已安装',
+                                      children: [
+                                        for (final model in installed)
+                                          _ModelItem(
+                                            model: model,
+                                            installed: true,
+                                            progress: null,
+                                            onTap: () =>
+                                                _startChat(context, model),
+                                            onLongPress: () =>
+                                                _confirmDelete(context, model),
+                                            onDownload: null,
+                                          ),
+                                      ],
+                                    ),
+                                  if (installed.isNotEmpty &&
+                                      available.isNotEmpty)
+                                    const SizedBox(height: 24),
+                                  if (available.isNotEmpty)
+                                    SettingsSection(
+                                      title: '可下载',
+                                      children: [
+                                        for (final model in available)
+                                          _ModelItem(
+                                            model: model,
+                                            installed: false,
+                                            progress: store.downloads[model.id],
+                                            onTap:
+                                                store.downloads[model.id] == null
+                                                    ? () => _download(
+                                                          context,
+                                                          model,
+                                                        )
+                                                    : null,
+                                            onLongPress: null,
+                                            onDownload: () =>
+                                                _download(context, model),
+                                          ),
+                                      ],
+                                    ),
+                                ],
+                              ),
                       ),
                     ],
                   ),
@@ -121,23 +199,94 @@ class ModelsView extends StatelessWidget {
   }
 }
 
-class _EmptyRow extends StatelessWidget {
-  const _EmptyRow({required this.label});
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
+    required this.filters,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<String> filters;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: filters.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final filter = filters[index];
+          return Center(
+            child: FilterChip(
+              label: Text(filter),
+              selected: filter == selected,
+              showCheckmark: false,
+              onSelected: (_) => onSelect(filter),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _EmptyResult extends StatelessWidget {
+  const _EmptyResult({super.key, required this.onClear});
+
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 32,
+            color: scheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text('没有符合条件的模型', style: text.titleMedium),
+          if (onClear != null) ...[
+            const SizedBox(height: 16),
+            FilledButton.tonal(
+              onPressed: onClear,
+              child: const Text('清除筛选'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TagPill extends StatelessWidget {
+  const _TagPill({required this.label});
 
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
       ),
     );
   }
@@ -164,32 +313,12 @@ class _ModelItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final pct = progress == null
-        ? 0
-        : (progress!.fraction * 100).toStringAsFixed(0);
 
     Widget? trailing;
     if (installed) {
       trailing = Icon(Icons.check, size: 22, color: scheme.primary);
     } else if (progress != null) {
-      trailing = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$pct%',
-            style: text.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              value: progress!.fraction,
-              strokeWidth: 2,
-            ),
-          ),
-        ],
-      );
+      trailing = _DownloadIndicator(progress: progress!);
     } else {
       trailing = IconButton(
         tooltip: '下载',
@@ -211,26 +340,31 @@ class _ModelItem extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    installed ? Icons.check_circle : Icons.download_outlined,
-                    size: 24,
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  BrandLogo(vendor: model.vendor),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          model.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.titleMedium,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                model.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: text.titleMedium,
+                              ),
+                            ),
+                            for (final tag in model.tags.take(2)) ...[
+                              const SizedBox(width: 6),
+                              _TagPill(label: tag),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${model.paramsLabel} · ${model.quant} · '
-                          '${formatBytes(model.sizeBytes)}',
+                          '${model.vendor} · ${formatBytes(model.sizeBytes)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: text.bodyMedium?.copyWith(
@@ -246,11 +380,13 @@ class _ModelItem extends StatelessWidget {
               ),
               if (progress != null) ...[
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress!.fraction,
-                    minHeight: 4,
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: progress!.fraction),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  builder: (context, value, _) => ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(value: value, minHeight: 4),
                   ),
                 ),
               ],
@@ -258,6 +394,59 @@ class _ModelItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DownloadIndicator extends StatelessWidget {
+  const _DownloadIndicator({required this.progress});
+
+  final DownloadProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: progress.fraction),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      builder: (context, value, _) {
+        final speed = progress.bytesPerSecond;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${(value * 100).round()}%',
+                  style: text.labelMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              speed > 0 ? '${formatBytes(speed.round())}/s' : '连接中',
+              style: text.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -11,6 +11,7 @@ import 'package:mnn_pocket_chat/ui/chat/chat_view.dart';
 import 'package:mnn_pocket_chat/ui/models/models_view.dart';
 import 'package:mnn_pocket_chat/ui/root_shell.dart';
 import 'package:mnn_pocket_chat/ui/settings/settings_view.dart';
+import 'package:mnn_pocket_chat/ui/widgets/brand_logo.dart';
 
 const _fontDir = '/opt/flutter/flutter/bin/cache/artifacts/material_fonts';
 const _cjkFont = '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc';
@@ -34,10 +35,19 @@ List<ModelSpec> _catalog() {
       .toList();
 }
 
+const _stats = GenerationStats(
+  prefillTps: 120,
+  decodeTps: 18.4,
+  promptTokens: 64,
+  outputTokens: 96,
+  elapsedMs: 5200,
+);
+
 AppStore _baseStore() {
   final store = AppStore();
   store.catalog = _catalog();
   store.installed.add('MNN-Pocket-0.3B-MNN');
+  store.lastStats = _stats;
   store.booting = false;
   return store;
 }
@@ -57,16 +67,16 @@ AppStore _homeStore() {
     ChatSession(
       id: 's2',
       title: '写一个快速排序',
-      modelId: 'MNN-Pocket-0.3B-MNN',
-      modelName: 'MNN Pocket 0.3B',
+      modelId: 'Qwen3-0.6B-MNN',
+      modelName: 'Qwen3 0.6B',
       messages: [ChatMessage(role: ChatRole.user, content: '快排')],
       updatedAt: now.subtract(const Duration(hours: 5)),
     ),
     ChatSession(
       id: 's1',
       title: '介绍一下你自己',
-      modelId: 'MNN-Pocket-0.3B-MNN',
-      modelName: 'MNN Pocket 0.3B',
+      modelId: 'MiniCPM4-0.5B-MNN',
+      modelName: 'MiniCPM4 0.5B',
       messages: [ChatMessage(role: ChatRole.user, content: '你好')],
       updatedAt: now.subtract(const Duration(days: 2)),
     ),
@@ -93,6 +103,7 @@ AppStore _chatStore() {
             '1. **数据不出设备**：对话只在本机内存中处理。\n'
             '2. **离线可用**：没有网络也能随时响应。\n'
             '3. **低延迟**：省去上传与排队。',
+        stats: _stats,
       ),
       ChatMessage(role: ChatRole.user, content: '帮我写一个 Python 快速排序。'),
       ChatMessage(
@@ -115,6 +126,7 @@ AppStore _chatStore() {
             '    return a\n'
             '```\n\n'
             '平均时间复杂度 O(n log n)，最坏 O(n²)。',
+        stats: _stats,
       ),
     ],
     updatedAt: DateTime.now(),
@@ -128,19 +140,21 @@ AppStore _chatStore() {
 
 AppStore _modelsStore() {
   final store = _baseStore();
+  store.installed.add('MiniCPM4-0.5B-MNN');
   store.downloads['Qwen3-0.6B-MNN'] = const DownloadProgress(
     received: 164_000_000,
     total: 454_473_462,
     file: 'llm.mnn.weight',
+    bytesPerSecond: 8_600_000,
   );
   return store;
 }
 
 ThemeData _theme() => AppTheme.build(AppTheme.lightScheme);
 
-Widget _app(AppStore store, Widget home) => MaterialApp(
+Widget _app(AppStore store, Widget home, {ThemeData? theme}) => MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: _theme(),
+      theme: theme ?? _theme(),
       home: home,
     );
 
@@ -163,15 +177,34 @@ void main() {
     WidgetTester tester,
     AppStore store,
     Widget home,
-    String name,
-  ) async {
+    String name, {
+    ThemeData? theme,
+  }) async {
     await prepare(tester);
     // 关掉测试环境对阴影的硬边替代，截图更接近真机。
     debugDisableShadows = false;
     try {
-      await tester.pumpWidget(_app(store, home));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pumpWidget(_app(store, home, theme: theme));
+      await tester.runAsync(() async {
+        final context = tester.element(find.byType(MaterialApp));
+        for (final vendor in const [
+          'Alibaba MNN',
+          'Qwen',
+          'OpenBMB',
+          'Tencent',
+          'Baidu',
+          'HuggingFace',
+          'Meta',
+        ]) {
+          final asset = BrandLogo.assetFor(vendor);
+          if (asset == null) continue;
+          await precacheImage(
+            AssetImage(asset, bundle: DefaultAssetBundle.of(context)),
+            context,
+          );
+        }
+      });
+      await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('../screenshots/$name.png'),
@@ -185,12 +218,12 @@ void main() {
 
   testWidgets('home', (tester) async {
     final store = _homeStore();
-    await shot(tester, store, RootShell(store: store), 'gptmobile_home');
+    await shot(tester, store, RootShell(store: store), 'features_home');
   }, skip: skip);
 
   testWidgets('chat', (tester) async {
     final store = _chatStore();
-    await shot(tester, store, ChatView(store: store), 'gptmobile_chat');
+    await shot(tester, store, ChatView(store: store), 'features_chat');
   }, skip: skip);
 
   testWidgets('settings', (tester) async {
@@ -199,12 +232,30 @@ void main() {
       tester,
       store,
       SettingsView(store: store),
-      'gptmobile_settings',
+      'features_settings',
     );
   }, skip: skip);
 
   testWidgets('models', (tester) async {
     final store = _modelsStore();
-    await shot(tester, store, ModelsView(store: store), 'gptmobile_models');
+    await shot(tester, store, ModelsView(store: store), 'features_models');
+  }, skip: skip);
+
+  testWidgets('oled', (tester) async {
+    final store = _baseStore();
+    store.oled = true;
+    await shot(
+      tester,
+      store,
+      SettingsView(store: store),
+      'features_oled',
+      theme: AppTheme.build(
+        AppTheme.schemeFor(
+          brightness: Brightness.dark,
+          seed: AppTheme.defaultSeed,
+          oled: true,
+        ),
+      ),
+    );
   }, skip: skip);
 }

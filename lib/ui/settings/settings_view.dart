@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../core/models.dart';
 import '../../state/app_store.dart';
 import '../models/models_view.dart';
+import '../widgets/brand_logo.dart';
 import '../widgets/common.dart';
 
 class SettingsView extends StatefulWidget {
@@ -18,6 +20,10 @@ class _SettingsViewState extends State<SettingsView> {
       widget.store.settings.temperature.clamp(0.0, 2.0).toDouble();
   late int _maxTokens =
       widget.store.settings.maxNewTokens.clamp(64, 2048).toInt();
+  late int _contextMessages =
+      widget.store.settings.contextMessages.clamp(4, 40).toInt();
+  late double _topP = widget.store.settings.topP.clamp(0.1, 1.0).toDouble();
+  late int _topK = widget.store.settings.topK.clamp(1, 100).toInt();
   late int _threads = widget.store.settings.threads.clamp(1, 8).toInt();
   late String _backend = widget.store.settings.backend;
 
@@ -25,9 +31,19 @@ class _SettingsViewState extends State<SettingsView> {
     final settings = widget.store.settings
       ..temperature = _temperature
       ..maxNewTokens = _maxTokens
+      ..contextMessages = _contextMessages
+      ..topP = _topP
+      ..topK = _topK
       ..threads = _threads
       ..backend = _backend;
     widget.store.updateSettings(settings);
+  }
+
+  ModelSpec? _installedModel(AppStore store) {
+    for (final model in store.catalog) {
+      if (store.installed.contains(model.id)) return model;
+    }
+    return null;
   }
 
   String _modeLabel(ThemeMode mode) {
@@ -144,108 +160,258 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar.large(
-            pinned: true,
-            leading: IconButton(
-              tooltip: '返回',
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back),
-            ),
-            title: const Text('设置'),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                children: [
-                  SettingsSection(
-                    title: '外观',
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final installedModel = _installedModel(store);
+        final stats = store.lastStats;
+        final speedText = stats == null
+            ? '尚无记录'
+            : '${stats.decodeTps.toStringAsFixed(1)} tok/s · '
+                '${stats.outputTokens} tokens';
+        return Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar.large(
+                pinned: true,
+                leading: IconButton(
+                  tooltip: '返回',
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                title: const Text('设置'),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Column(
                     children: [
-                      SettingItem(
-                        title: '主题设置',
-                        description: _modeLabel(store.themeMode),
-                        onTap: _pickTheme,
-                        trailing: const SettingChevron(),
+                      SettingsSection(
+                        title: '外观',
+                        children: [
+                          SettingItem(
+                            title: '主题设置',
+                            description: _modeLabel(store.themeMode),
+                            onTap: _pickTheme,
+                            trailing: const SettingChevron(),
+                          ),
+                          _ThemeColorSetting(
+                            selected: store.themeSeed,
+                            onSelect: store.setThemeSeed,
+                          ),
+                          SettingItem(
+                            title: '纯黑背景（OLED）',
+                            description: '深色模式下使用纯黑，更省电',
+                            trailing: Switch(
+                              value: store.oled,
+                              onChanged: store.setOled,
+                            ),
+                          ),
+                          SettingItem(
+                            title: '动态取色',
+                            trailing: Switch(
+                              value: store.dynamicColor,
+                              onChanged: store.setDynamicColor,
+                            ),
+                          ),
+                        ],
                       ),
-                      SettingItem(
-                        title: '动态取色',
-                        trailing: Switch(
-                          value: store.dynamicColor,
-                          onChanged: store.setDynamicColor,
-                        ),
+                      const SizedBox(height: 24),
+                      SettingsSection(
+                        title: '模型',
+                        children: [
+                          SettingItem(
+                            title: '本地模型',
+                            description: '${store.catalog.length} 个 ≤1B 端侧模型',
+                            leading: BrandLogo(
+                              vendor: installedModel?.vendor ?? 'Alibaba MNN',
+                            ),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ModelsView(store: store),
+                              ),
+                            ),
+                            trailing: const SettingChevron(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      SettingsSection(
+                        title: '生成',
+                        children: [
+                          _SliderSetting(
+                            title: '最大输出',
+                            value: '$_maxTokens tokens',
+                            slider: Slider(
+                              value: _maxTokens.toDouble(),
+                              min: 64,
+                              max: 2048,
+                              divisions: 31,
+                              onChanged: (value) =>
+                                  setState(() => _maxTokens = value.round()),
+                              onChangeEnd: (_) => _persist(),
+                            ),
+                          ),
+                          _SliderSetting(
+                            title: '温度',
+                            value: _temperature.toStringAsFixed(2),
+                            slider: Slider(
+                              value: _temperature,
+                              min: 0,
+                              max: 2,
+                              divisions: 40,
+                              onChanged: (value) =>
+                                  setState(() => _temperature = value),
+                              onChangeEnd: (_) => _persist(),
+                            ),
+                          ),
+                          _SliderSetting(
+                            title: '上下文长度',
+                            value: '$_contextMessages 条消息',
+                            caption:
+                                '保留最近 $_contextMessages 条历史，模型上限 32K',
+                            slider: Slider(
+                              value: _contextMessages.toDouble(),
+                              min: 4,
+                              max: 40,
+                              divisions: 18,
+                              onChanged: (value) => setState(
+                                () => _contextMessages = value.round(),
+                              ),
+                              onChangeEnd: (_) => _persist(),
+                            ),
+                          ),
+                          _SliderSetting(
+                            title: 'Top-P',
+                            value: _topP.toStringAsFixed(2),
+                            slider: Slider(
+                              value: _topP,
+                              min: 0.1,
+                              max: 1.0,
+                              divisions: 18,
+                              onChanged: (value) =>
+                                  setState(() => _topP = value),
+                              onChangeEnd: (_) => _persist(),
+                            ),
+                          ),
+                          _SliderSetting(
+                            title: 'Top-K',
+                            value: '$_topK',
+                            slider: Slider(
+                              value: _topK.toDouble(),
+                              min: 1,
+                              max: 100,
+                              divisions: 99,
+                              onChanged: (value) =>
+                                  setState(() => _topK = value.round()),
+                              onChangeEnd: (_) => _persist(),
+                            ),
+                          ),
+                          SettingItem(
+                            title: '最近速度',
+                            description: '$speedText\n每次回答后实测',
+                          ),
+                          SettingItem(
+                            title: '性能',
+                            description: '$_backendLabel / $_threads 线程',
+                            onTap: _editPerformance,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      SettingsSection(
+                        title: '关于',
+                        children: [
+                          const SettingItem(title: '版本', description: '0.3.0'),
+                          const SettingItem(
+                            title: 'GitHub',
+                            description: 'github.com/Taewan-P/gpt_mobile',
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  SettingsSection(
-                    title: '模型',
-                    children: [
-                      SettingItem(
-                        title: '本地模型',
-                        description: '${store.catalog.length} 个 ≤1B 端侧模型',
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => ModelsView(store: store),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ThemeColorSetting extends StatelessWidget {
+  const _ThemeColorSetting({required this.selected, required this.onSelect});
+
+  final int selected;
+  final ValueChanged<int> onSelect;
+
+  static const List<({String name, int hex})> colors = [
+    (name: '绿', hex: 0xFF1A6B51),
+    (name: '青', hex: 0xFF00696E),
+    (name: '蓝', hex: 0xFF2F5DA8),
+    (name: '紫', hex: 0xFF6B4FA1),
+    (name: '橙', hex: 0xFFA45A00),
+    (name: '粉', hex: 0xFF9C4063),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('主题色', style: text.titleMedium),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final color in colors)
+                Tooltip(
+                  message: color.name,
+                  child: Semantics(
+                    label: '主题色 ${color.name}',
+                    button: true,
+                    selected: selected == color.hex,
+                    child: GestureDetector(
+                      onTap: () => onSelect(color.hex),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        width: selected == color.hex ? 38 : 36,
+                        height: selected == color.hex ? 38 : 36,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected == color.hex
+                                ? scheme.onSurface
+                                : Colors.transparent,
+                            width: 2,
                           ),
                         ),
-                        trailing: const SettingChevron(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  SettingsSection(
-                    title: '生成',
-                    children: [
-                      _SliderSetting(
-                        title: '最大输出',
-                        value: '$_maxTokens tokens',
-                        slider: Slider(
-                          value: _maxTokens.toDouble(),
-                          min: 64,
-                          max: 2048,
-                          divisions: 31,
-                          onChanged: (value) =>
-                              setState(() => _maxTokens = value.round()),
-                          onChangeEnd: (_) => _persist(),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          width: selected == color.hex ? 30 : 28,
+                          height: selected == color.hex ? 30 : 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(color.hex),
+                          ),
                         ),
                       ),
-                      _SliderSetting(
-                        title: '温度',
-                        value: _temperature.toStringAsFixed(2),
-                        slider: Slider(
-                          value: _temperature,
-                          min: 0,
-                          max: 2,
-                          divisions: 40,
-                          onChanged: (value) =>
-                              setState(() => _temperature = value),
-                          onChangeEnd: (_) => _persist(),
-                        ),
-                      ),
-                      SettingItem(
-                        title: '性能',
-                        description: '$_backendLabel / $_threads 线程',
-                        onTap: _editPerformance,
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  SettingsSection(
-                    title: '关于',
-                    children: [
-                      const SettingItem(title: '版本', description: '0.2.0'),
-                      const SettingItem(
-                        title: 'GitHub',
-                        description: 'github.com/Taewan-P/gpt_mobile',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
         ],
       ),
@@ -258,11 +424,13 @@ class _SliderSetting extends StatelessWidget {
     required this.title,
     required this.value,
     required this.slider,
+    this.caption,
   });
 
   final String title;
   final String value;
   final Widget slider;
+  final String? caption;
 
   @override
   Widget build(BuildContext context) {
@@ -273,6 +441,19 @@ class _SliderSetting extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: slider,
         ),
+        if (caption != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                caption!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ),
+          ),
       ],
     );
   }

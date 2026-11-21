@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/models.dart';
 import '../../state/app_store.dart';
+import '../widgets/brand_logo.dart';
 import 'message_bubble.dart';
 
 class ChatView extends StatefulWidget {
@@ -18,12 +21,38 @@ class _ChatViewState extends State<ChatView> {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
   bool _atBottom = true;
+  Timer? _ticker;
+  DateTime? _startedAt;
 
   @override
   void initState() {
     super.initState();
     _input.addListener(_onInputChanged);
     _scroll.addListener(_onScroll);
+    widget.store.addListener(_onStoreChanged);
+    if (widget.store.generating) _startTicker();
+  }
+
+  void _onStoreChanged() {
+    if (widget.store.generating) {
+      _startTicker();
+    } else {
+      _stopTicker();
+    }
+  }
+
+  void _startTicker() {
+    if (_ticker != null) return;
+    _startedAt = DateTime.now();
+    _ticker = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _stopTicker() {
+    _ticker?.cancel();
+    _ticker = null;
+    _startedAt = null;
   }
 
   void _onInputChanged() => setState(() {});
@@ -35,6 +64,8 @@ class _ChatViewState extends State<ChatView> {
 
   @override
   void dispose() {
+    widget.store.removeListener(_onStoreChanged);
+    _stopTicker();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
@@ -61,6 +92,9 @@ class _ChatViewState extends State<ChatView> {
         final scheme = Theme.of(context).colorScheme;
         final text = Theme.of(context).textTheme;
         final modelName = store.activeModel?.name ?? session?.modelName ?? '';
+        final modelVendor = store.activeModel?.vendor ??
+            store.specFor(session?.modelId ?? '')?.vendor ??
+            '';
 
         if (session == null) {
           return Scaffold(
@@ -107,7 +141,7 @@ class _ChatViewState extends State<ChatView> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.memory_outlined),
+                icon: BrandLogo(vendor: modelVendor, size: 28),
               ),
               PopupMenuButton<String>(
                 tooltip: '更多',
@@ -158,15 +192,27 @@ class _ChatViewState extends State<ChatView> {
                     itemCount: session.messages.length,
                     itemBuilder: (context, index) {
                       final message = session.messages[index];
-                      return MessageBubble(
-                        message: message,
-                        streaming: store.generating &&
-                            index == session.messages.length - 1 &&
-                            message.role == ChatRole.assistant,
+                      return _BubbleEntrance(
+                        key: ObjectKey(message),
+                        child: MessageBubble(
+                          message: message,
+                          streaming: store.generating &&
+                              index == session.messages.length - 1 &&
+                              message.role == ChatRole.assistant,
+                        ),
                       );
                     },
                   ),
                 ),
+                if (store.generating)
+                  _GenerationStatus(
+                    elapsed: _startedAt == null
+                        ? Duration.zero
+                        : DateTime.now().difference(_startedAt!),
+                    characters: session.messages.isEmpty
+                        ? 0
+                        : session.messages.last.content.trim().length,
+                  ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(0, 4, 0, 8),
                   child: _ChatInputBox(
@@ -180,6 +226,59 @@ class _ChatViewState extends State<ChatView> {
           ),
         );
       },
+    );
+  }
+}
+
+class _BubbleEntrance extends StatelessWidget {
+  const _BubbleEntrance({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 8 * (1 - value)),
+          child: child,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _GenerationStatus extends StatelessWidget {
+  const _GenerationStatus({required this.elapsed, required this.characters});
+
+  final Duration elapsed;
+  final int characters;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final seconds = (elapsed.inMilliseconds / 1000).toStringAsFixed(1);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 2),
+      child: Row(
+        children: [
+          Text(
+            '生成中 · ${seconds}s',
+            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          const Spacer(),
+          Text(
+            '已生成 $characters 字',
+            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
     );
   }
 }

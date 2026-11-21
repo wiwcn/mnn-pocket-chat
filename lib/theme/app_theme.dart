@@ -78,9 +78,48 @@ class AppTheme {
     surfaceTint: Color(0xFF8AD6B6),
   );
 
+  /// 默认主题色，与 gpt_mobile 的绿色完全一致。
+  static const int defaultSeed = 0xFF1A6B51;
+
+  static ColorScheme schemeFor({
+    required Brightness brightness,
+    required int seed,
+    bool oled = false,
+    ColorScheme? dynamic,
+  }) {
+    final ColorScheme scheme;
+    if (dynamic != null) {
+      scheme = dynamic;
+    } else if (seed == defaultSeed) {
+      scheme =
+          brightness == Brightness.light ? lightScheme : darkScheme;
+    } else {
+      scheme = ColorScheme.fromSeed(
+        seedColor: Color(seed),
+        brightness: brightness,
+        dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
+      );
+    }
+    if (!oled || brightness != Brightness.dark) return scheme;
+    return scheme.copyWith(
+      surface: const Color(0xFF000000),
+      surfaceDim: const Color(0xFF000000),
+      surfaceContainerLowest: const Color(0xFF000000),
+      surfaceContainerLow: const Color(0xFF0A0A0A),
+      surfaceContainer: const Color(0xFF121212),
+      surfaceContainerHigh: const Color(0xFF1A1A1A),
+      surfaceContainerHighest: const Color(0xFF222222),
+    );
+  }
+
   static ThemeData build(ColorScheme scheme) {
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
     return base.copyWith(
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: _FadeThroughPageTransitionsBuilder(),
+        },
+      ),
       scaffoldBackgroundColor: scheme.surface,
       canvasColor: scheme.surface,
       appBarTheme: AppBarTheme(
@@ -136,6 +175,39 @@ class AppTheme {
         color: scheme.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+    );
+  }
+}
+
+/// fade-through：淡入 + 轻微上移，220ms，仅用于页面切换。
+class _FadeThroughPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _FadeThroughPageTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 220);
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.02),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
       ),
     );
   }

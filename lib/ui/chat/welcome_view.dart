@@ -5,6 +5,7 @@ import '../../core/models.dart';
 import '../../state/app_store.dart';
 import '../models/models_view.dart';
 import '../settings/settings_view.dart';
+import '../widgets/brand_logo.dart';
 import 'chat_view.dart';
 
 /// gpt_mobile HomeScreen 的 Flutter 版本：对话列表 + 搜索 + 设置入口。
@@ -17,18 +18,25 @@ class WelcomeView extends StatefulWidget {
   State<WelcomeView> createState() => _WelcomeViewState();
 }
 
-class _WelcomeViewState extends State<WelcomeView> {
+class _WelcomeViewState extends State<WelcomeView>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _search = TextEditingController();
+  late final AnimationController _entrance;
   bool _searching = false;
 
   @override
   void initState() {
     super.initState();
     _search.addListener(() => setState(() {}));
+    _entrance = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..forward();
   }
 
   @override
   void dispose() {
+    _entrance.dispose();
     _search.dispose();
     super.dispose();
   }
@@ -173,11 +181,17 @@ class _WelcomeViewState extends State<WelcomeView> {
                   padding: const EdgeInsets.only(bottom: 96),
                   children: [
                     if (!_searching) const _ChatsTitle(),
-                    for (final session in sessions)
+                    for (var i = 0; i < sessions.length; i++)
                       _SessionItem(
-                        session: session,
-                        onTap: () => _openSession(session),
-                        onLongPress: () => _confirmDelete(session),
+                        session: sessions[i],
+                        vendor: widget.store
+                                .specFor(sessions[i].modelId)
+                                ?.vendor ??
+                            '',
+                        animation: _entrance,
+                        index: i,
+                        onTap: () => _openSession(sessions[i]),
+                        onLongPress: () => _confirmDelete(sessions[i]),
                       ),
                   ],
                 ),
@@ -205,11 +219,17 @@ class _ChatsTitle extends StatelessWidget {
 class _SessionItem extends StatelessWidget {
   const _SessionItem({
     required this.session,
+    required this.vendor,
+    required this.animation,
+    required this.index,
     required this.onTap,
     required this.onLongPress,
   });
 
   final ChatSession session;
+  final String vendor;
+  final Animation<double> animation;
+  final int index;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -217,53 +237,66 @@ class _SessionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Material(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-          onLongPress: onLongPress,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 72),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 24,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          session.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.titleMedium,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '使用 ${session.modelName}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
+    final start = (index * 40).clamp(0, 340) / 500;
+    final end = ((index * 40) + 160).clamp(160, 500) / 500;
+    final curve = CurvedAnimation(
+      parent: animation,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) => Opacity(
+        opacity: curve.value,
+        child: Transform.translate(
+          offset: Offset(0, 8 * (1 - curve.value)),
+          child: child,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Material(
+          color: scheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
+            onLongPress: onLongPress,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 72),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    BrandLogo(vendor: vendor),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            session.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: text.titleMedium,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            '使用 ${session.modelName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: text.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

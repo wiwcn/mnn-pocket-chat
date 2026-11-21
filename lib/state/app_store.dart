@@ -38,12 +38,19 @@ class AppStore extends ChangeNotifier {
   int tabIndex = 0;
   ThemeMode themeMode = ThemeMode.system;
   bool dynamicColor = false;
+  int themeSeed = 0xFF1A6B51;
+  bool oled = false;
+  GenerationStats? lastStats;
   final ValueNotifier<ThemeMode> themeModeNotifier =
       ValueNotifier<ThemeMode>(ThemeMode.system);
   final ValueNotifier<bool> dynamicColorNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<int> themeSeedNotifier =
+      ValueNotifier<int>(0xFF1A6B51);
+  final ValueNotifier<bool> oledNotifier = ValueNotifier<bool>(false);
 
   String? _streamingSessionId;
   SharedPreferences? _prefs;
+  final Map<String, DateTime> _downloadTicks = {};
 
   ModelSpec? specFor(String id) {
     for (final m in catalog) {
@@ -65,8 +72,12 @@ class AppStore extends ChangeNotifier {
       orElse: () => ThemeMode.system,
     );
     dynamicColor = _prefs?.getBool('dynamicColor') ?? false;
+    themeSeed = _prefs?.getInt('themeSeed') ?? 0xFF1A6B51;
+    oled = _prefs?.getBool('oledMode') ?? false;
     themeModeNotifier.value = themeMode;
     dynamicColorNotifier.value = dynamicColor;
+    themeSeedNotifier.value = themeSeed;
+    oledNotifier.value = oled;
     settings = await _store.loadSettings();
 
     try {
@@ -103,10 +114,48 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setThemeSeed(int value) async {
+    themeSeed = value;
+    themeSeedNotifier.value = value;
+    await _prefs?.setInt('themeSeed', value);
+    notifyListeners();
+  }
+
+  Future<void> setOled(bool value) async {
+    oled = value;
+    oledNotifier.value = value;
+    await _prefs?.setBool('oledMode', value);
+    notifyListeners();
+  }
+
   Future<void> updateSettings(EngineSettings next) async {
     settings = next;
     await _store.saveSettings(next);
     notifyListeners();
+  }
+
+  DownloadProgress _withSpeed(String id, DownloadProgress next) {
+    final now = DateTime.now();
+    final previous = downloads[id];
+    final lastTick = _downloadTicks[id];
+    var speed = previous?.bytesPerSecond ?? 0;
+    if (previous != null && lastTick != null) {
+      final elapsed = now.difference(lastTick).inMilliseconds;
+      final delta = next.received - previous.received;
+      if (elapsed >= 300 && delta > 0) {
+        final instant = delta * 1000 / elapsed;
+        speed = speed <= 0 ? instant : speed * 0.65 + instant * 0.35;
+        _downloadTicks[id] = now;
+      }
+    } else {
+      _downloadTicks[id] = now;
+    }
+    return DownloadProgress(
+      received: next.received,
+      total: next.total,
+      file: next.file,
+      bytesPerSecond: speed,
+    );
   }
 
   Future<String?> downloadModel(ModelSpec spec) async {
@@ -120,27 +169,31 @@ class AppStore extends ChangeNotifier {
         await root.create(recursive: true);
       }
       downloads[spec.id] = const DownloadProgress(received: 0, total: 0);
+      _downloadTicks.remove(spec.id);
       notifyListeners();
       await _downloader.download(
         model: spec,
         files: files,
         destDir: dir,
         onProgress: (progress) {
-          downloads[spec.id] = progress;
+          downloads[spec.id] = _withSpeed(spec.id, progress);
           notifyListeners();
         },
         isCancelled: () => _cancelled.contains(spec.id),
       );
       installed.add(spec.id);
       downloads.remove(spec.id);
+      _downloadTicks.remove(spec.id);
       notifyListeners();
       return null;
     } on DownloadCancelled {
       downloads.remove(spec.id);
+      _downloadTicks.remove(spec.id);
       notifyListeners();
       return '已取消下载';
     } catch (e) {
       downloads.remove(spec.id);
+      _downloadTicks.remove(spec.id);
       notifyListeners();
       return '下载失败：$e';
     }
@@ -149,6 +202,7 @@ class AppStore extends ChangeNotifier {
   void cancelDownload(String id) {
     _cancelled.add(id);
     downloads.remove(id);
+    _downloadTicks.remove(id);
     notifyListeners();
   }
 
@@ -268,9 +322,13 @@ class AppStore extends ChangeNotifier {
     final history = session.messages
         .where((m) => m != session.messages.last)
         .toList();
+    final limit = settings.contextMessages.clamp(1, 200);
+    final recent = history.length > limit
+        ? history.sublist(history.length - limit)
+        : history;
     try {
       await engine.generate(
-        history: history,
+        history: recent,
         systemPrompt: settings.systemPrompt,
         maxTokens: settings.maxNewTokens,
       );
@@ -312,6 +370,7 @@ class AppStore extends ChangeNotifier {
         stopping = false;
         _streamingSessionId = null;
         session.messages.last.stats = event.stats;
+        lastStats = event.stats;
         session.updatedAt = DateTime.now();
         sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
         unawaited(_store.saveSessions(sessions));

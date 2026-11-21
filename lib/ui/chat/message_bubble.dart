@@ -42,6 +42,12 @@ Future<void> _showCopySheet(BuildContext context, String value) async {
   );
 }
 
+String _statsLabel(GenerationStats stats) {
+  final seconds = (stats.elapsedMs / 1000).toStringAsFixed(1);
+  return '${stats.decodeTps.toStringAsFixed(1)} tok/s · '
+      '${stats.outputTokens} tokens · ${seconds}s';
+}
+
 class _UserBubble extends StatelessWidget {
   const _UserBubble({required this.message});
 
@@ -125,26 +131,43 @@ class _AssistantMessage extends StatelessWidget {
             ),
           ),
           if (!streaming)
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                tooltip: '复制',
-                iconSize: 20,
-                color: scheme.onSurfaceVariant,
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: answer));
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('已复制'),
-                      duration: Duration(seconds: 1),
+            Row(
+              children: [
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 32,
+                      height: 32,
                     ),
-                  );
-                },
-                icon: const Icon(Icons.copy_outlined),
-              ),
+                    tooltip: '复制',
+                    iconSize: 18,
+                    color: scheme.onSurfaceVariant,
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: answer));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('已复制'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.copy_outlined),
+                  ),
+                ),
+                if (message.stats != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    _statsLabel(message.stats!),
+                    style: text.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
             ),
         ],
       ),

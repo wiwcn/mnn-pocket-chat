@@ -5,21 +5,29 @@
 - 完全本地推理：MNN 3.6.2 `libllm.so` + Kotlin/JNI
 - 模型市场：ModelScope 优先，hf-mirror 自动回退
 - 断点续传、逐文件校验、下载进度
-- 流式输出、停止生成、思考过程折叠、复制消息
-- 动态取色、浅色/深色、可调 temperature / top-p / top-k / 线程数
-- 仅 `arm64-v8a`，`minSdk 26`
+- 流式输出、停止生成、思考过程折叠、复制消息、逐次生成速度统计
+- 6 种主题色、OLED 纯黑、动态取色、浅色/深色
+- 模型标签筛选、厂商标识、已安装优先排序
+- 可调上下文长度 / temperature / top-p / top-k / 线程数
+- 仅 `arm64-v8a`，`minSdk 26`（当前版本 0.3.0）
 
 ## 界面
 
 视觉参考 [Taewan-P/gpt_mobile](https://github.com/Taewan-P/gpt_mobile)，配色、圆角与列表结构均按原版 Compose 源码逐项还原。
 
+支持主题色切换、OLED 纯黑模式、厂商官方 logo、模型标签筛选、实测生成速度与上下文长度调节。
+
 | 对话 | 聊天 |
 | :-: | :-: |
-| <img src="screenshots/gptmobile_home.png" width="230"/> | <img src="screenshots/gptmobile_chat.png" width="230"/> |
+| <img src="screenshots/features_home.png" width="230"/> | <img src="screenshots/features_chat.png" width="230"/> |
 
 | 设置 | 本地模型 |
 | :-: | :-: |
-| <img src="screenshots/gptmobile_settings.png" width="230"/> | <img src="screenshots/gptmobile_models.png" width="230"/> |
+| <img src="screenshots/features_settings.png" width="230"/> | <img src="screenshots/features_models.png" width="230"/> |
+
+| OLED 纯黑 |
+| :-: |
+| <img src="screenshots/features_oled.png" width="230"/> |
 
 
 ## 为什么原版 MNN Chat 不支持 MNN-Pocket-0.3B？

@@ -199,6 +199,7 @@ class EngineSettings {
     this.topP = 0.9,
     this.topK = 40,
     this.maxNewTokens = 512,
+    this.contextMessages = 24,
     this.threads = 4,
     this.backend = 'cpu',
     this.systemPrompt =
@@ -209,6 +210,7 @@ class EngineSettings {
   double topP;
   int topK;
   int maxNewTokens;
+  int contextMessages;
   int threads;
   String backend;
   String systemPrompt;
@@ -218,6 +220,7 @@ class EngineSettings {
         'topP': topP,
         'topK': topK,
         'maxNewTokens': maxNewTokens,
+        'contextMessages': contextMessages,
         'threads': threads,
         'backend': backend,
         'systemPrompt': systemPrompt,
@@ -229,6 +232,7 @@ class EngineSettings {
       topP: (json['topP'] as num?)?.toDouble() ?? 0.9,
       topK: (json['topK'] as num?)?.toInt() ?? 40,
       maxNewTokens: (json['maxNewTokens'] as num?)?.toInt() ?? 512,
+      contextMessages: (json['contextMessages'] as num?)?.toInt() ?? 24,
       threads: (json['threads'] as num?)?.toInt() ?? 4,
       backend: json['backend'] as String? ?? 'cpu',
       systemPrompt: json['systemPrompt'] as String? ??
@@ -262,11 +266,13 @@ class DownloadProgress {
     required this.received,
     required this.total,
     this.file,
+    this.bytesPerSecond = 0,
   });
 
   final int received;
   final int total;
   final String? file;
+  final double bytesPerSecond;
 
   double get fraction => total <= 0 ? 0 : (received / total).clamp(0.0, 1.0);
 }
