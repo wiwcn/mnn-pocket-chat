@@ -64,35 +64,43 @@ class AppStore extends ChangeNotifier {
 
   Future<void> init() async {
     if (!booting) return;
-    await engine.initialize();
-    _engineSub = engine.events.listen(_onEngineEvent);
-    _prefs = await _store.loadPreferences();
-    themeMode = ThemeMode.values.firstWhere(
-      (m) => m.name == (_prefs['themeMode'] as String? ?? 'system'),
-      orElse: () => ThemeMode.system,
-    );
-    dynamicColor = _prefs['dynamicColor'] as bool? ?? false;
-    themeSeed = _prefs['themeSeed'] as int? ?? 0xFF1A6B51;
-    oled = _prefs['oledMode'] as bool? ?? false;
-    themeModeNotifier.value = themeMode;
-    dynamicColorNotifier.value = dynamicColor;
-    themeSeedNotifier.value = themeSeed;
-    oledNotifier.value = oled;
-    settings = await _store.loadSettings();
-
     try {
-      final raw = jsonDecode(await rootBundle.loadString('assets/models.json'));
-      catalog = (raw as List)
-          .map((e) => ModelSpec.fromJson((e as Map).cast<String, dynamic>()))
-          .toList();
-    } catch (e) {
-      engineError = '模型目录加载失败：$e';
-    }
+      await engine.initialize();
+      _engineSub = engine.events.listen(_onEngineEvent);
+      _prefs = await _store.loadPreferences();
+      themeMode = ThemeMode.values.firstWhere(
+        (m) => m.name == (_prefs['themeMode'] as String? ?? 'system'),
+        orElse: () => ThemeMode.system,
+      );
+      dynamicColor = _prefs['dynamicColor'] as bool? ?? false;
+      themeSeed = _prefs['themeSeed'] as int? ?? 0xFF1A6B51;
+      oled = _prefs['oledMode'] as bool? ?? false;
+      themeModeNotifier.value = themeMode;
+      dynamicColorNotifier.value = dynamicColor;
+      themeSeedNotifier.value = themeSeed;
+      oledNotifier.value = oled;
+      settings = await _store.loadSettings();
 
-    sessions = await _store.loadSessions();
-    installed.addAll(await _store.scanInstalled(catalog.map((e) => e.id).toSet()));
-    booting = false;
-    notifyListeners();
+      try {
+        final raw = jsonDecode(await rootBundle.loadString('assets/models.json'));
+        catalog = (raw as List)
+            .map((e) => ModelSpec.fromJson((e as Map).cast<String, dynamic>()))
+            .toList();
+      } catch (e) {
+        engineError = '模型目录加载失败：$e';
+      }
+
+      sessions = await _store.loadSessions();
+      installed.addAll(
+        await _store.scanInstalled(catalog.map((e) => e.id).toSet()),
+      );
+    } catch (e) {
+      // 任一步失败都不能让 App 永远卡在启动闪屏。
+      engineError = '初始化失败：$e';
+    } finally {
+      booting = false;
+      notifyListeners();
+    }
   }
 
   Future<void> setTab(int index) async {
@@ -247,6 +255,11 @@ class AppStore extends ChangeNotifier {
 
   Future<void> deleteModel(ModelSpec spec) async {
     if (activeModel?.id == spec.id) {
+      // 删除当前模型前先结束生成，避免模型文件被删除时引擎仍在使用。
+      if (generating) {
+        await stopGeneration();
+        _finishStreaming();
+      }
       await engine.release();
       activeModel = null;
       modelReady = false;
@@ -334,10 +347,24 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> deleteSession(ChatSession session) async {
+    // 删除正在流式输出的会话时，先请求停止，避免引擎回调丢失导致
+    // generating 永久为 true、App 卡死在"生成中"。
+    if (generating && _streamingSessionId == session.id) {
+      await stopGeneration();
+      _finishStreaming();
+    }
     sessions.removeWhere((s) => s.id == session.id);
     if (activeSession?.id == session.id) activeSession = null;
     await _store.saveSessions(sessions);
     notifyListeners();
+  }
+
+  /// 统一收尾流式状态，确保任何路径都不会把 generating 卡在 true。
+  void _finishStreaming({GenerationStats? stats}) {
+    generating = false;
+    stopping = false;
+    _streamingSessionId = null;
+    if (stats != null) lastStats = stats;
   }
 
   bool get canAttachImage =>
@@ -386,10 +413,10 @@ class AppStore extends ChangeNotifier {
         maxTokens: settings.maxNewTokens,
       );
     } catch (e) {
-      generating = false;
-      stopping = false;
-      _streamingSessionId = null;
-      session.messages.last.content = '生成失败：$e';
+      _finishStreaming();
+      if (session.messages.isNotEmpty) {
+        session.messages.last.content = '生成失败：$e';
+      }
       notifyListeners();
     }
   }
@@ -409,34 +436,41 @@ class AppStore extends ChangeNotifier {
   }
 
   void _onEngineEvent(EngineEvent event) {
-    final session = activeSession;
-    if (session == null) return;
+    final streamId = _streamingSessionId;
+    // 事件必须归属到发起生成的会话，而不是"当前打开的会话"——后者在
+    // 生成期间可能已被删除/切换，导致 token/done 被吞、generating 卡死。
+    if (streamId == null) return;
+    ChatSession? session;
+    for (final candidate in sessions) {
+      if (candidate.id == streamId) {
+        session = candidate;
+        break;
+      }
+    }
+
     switch (event.type) {
       case 'token':
-        if (_streamingSessionId != session.id) return;
+        if (session == null || session.messages.isEmpty) return;
         session.messages.last.content += event.text ?? '';
         notifyListeners();
         break;
       case 'done':
-        if (_streamingSessionId != session.id) return;
-        generating = false;
-        stopping = false;
-        _streamingSessionId = null;
-        session.messages.last.stats = event.stats;
-        lastStats = event.stats;
-        session.updatedAt = DateTime.now();
-        sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        unawaited(_store.saveSessions(sessions));
+        _finishStreaming(stats: event.stats);
+        if (session != null && session.messages.isNotEmpty) {
+          session.messages.last.stats = event.stats;
+          session.updatedAt = DateTime.now();
+          sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          unawaited(_store.saveSessions(sessions));
+        }
         notifyListeners();
         break;
       case 'error':
-        if (_streamingSessionId != session.id) return;
-        generating = false;
-        stopping = false;
-        _streamingSessionId = null;
+        _finishStreaming();
         final message = event.message ?? '未知错误';
         engineError = message;
-        if (session.messages.isNotEmpty && session.messages.last.content.isEmpty) {
+        if (session != null &&
+            session.messages.isNotEmpty &&
+            session.messages.last.content.isEmpty) {
           session.messages.last.content = '生成失败：$message';
         }
         notifyListeners();
@@ -445,6 +479,10 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> releaseModel() async {
+    if (generating) {
+      await stopGeneration();
+      _finishStreaming();
+    }
     await engine.release();
     modelReady = false;
     activeModel = null;

@@ -336,13 +336,20 @@ class EngineEvent {
       return EngineEvent(type, text: map['text'] as String? ?? '');
     }
     if (type == 'done') {
-      final raw = map['stats'];
-      final stats = raw is String
-          ? GenerationStats.fromJson(
-              (jsonDecode(raw) as Map).cast<String, dynamic>())
-          : raw is Map
-              ? GenerationStats.fromJson(raw.cast<String, dynamic>())
-              : const GenerationStats();
+      // 原生侧回传的 statsJson 可能因异常变成非法 JSON；解析失败时回退到
+      // 空统计，绝不让它冒泡到事件流、否则 generating 将无法复位。
+      GenerationStats stats;
+      try {
+        final raw = map['stats'];
+        stats = raw is String
+            ? GenerationStats.fromJson(
+                (jsonDecode(raw) as Map).cast<String, dynamic>())
+            : raw is Map
+                ? GenerationStats.fromJson(raw.cast<String, dynamic>())
+                : const GenerationStats();
+      } catch (_) {
+        stats = const GenerationStats();
+      }
       return EngineEvent(type, stats: stats);
     }
     return EngineEvent(type, message: map['message'] as String?);
