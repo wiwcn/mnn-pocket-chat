@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -150,6 +151,42 @@ AppStore _modelsStore() {
   return store;
 }
 
+AppStore _visionStore(String imagePath) {
+  final store = _baseStore();
+  final spec = store.specFor('smolvlm-256m')!;
+  final session = ChatSession(
+    id: 'vision',
+    title: '看看这张图',
+    modelId: spec.id,
+    modelName: spec.name,
+    messages: [
+      ChatMessage(
+        role: ChatRole.user,
+        content: '这张图片里是什么？',
+        imagePath: imagePath,
+      ),
+      ChatMessage(
+        role: ChatRole.assistant,
+        content: '图片是一个 **Qwen** 品牌图标：白色底上有一枚青绿色徽标，'
+            '整体呈圆形，适合放在模型列表中作为厂商标识。',
+        stats: _stats,
+      ),
+    ],
+    updatedAt: DateTime.now(),
+  );
+  store.sessions = [session];
+  store.activeSession = session;
+  store.activeModel = spec;
+  store.modelReady = true;
+  return store;
+}
+
+String _sampleImage() {
+  final dir = Directory.systemTemp.createTempSync('mnn_vision_shot');
+  final bytes = File('assets/logos/qwen.png').readAsBytesSync();
+  return (File('${dir.path}/sample.png')..writeAsBytesSync(bytes)).path;
+}
+
 ThemeData _theme() => AppTheme.build(AppTheme.lightScheme);
 
 Widget _app(AppStore store, Widget home, {ThemeData? theme}) => MaterialApp(
@@ -173,17 +210,42 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
+  Future<void> precacheLocal(WidgetTester tester, String path) async {
+    // 必须在 pumpWidget 之前完成解码：图片若先在 fake async 区域发起加载，
+    // 之后在 runAsync 里监听会一直等待同一个未完成的 ImageStream。
+    await tester.runAsync(() async {
+      final stream = FileImage(File(path)).resolve(ImageConfiguration.empty);
+      final done = Completer<void>();
+      late ImageStreamListener listener;
+      listener = ImageStreamListener(
+        (_, _) {
+          if (!done.isCompleted) done.complete();
+        },
+        onError: (error, stack) {
+          if (!done.isCompleted) done.completeError(error, stack);
+        },
+      );
+      stream.addListener(listener);
+      await done.future;
+      stream.removeListener(listener);
+    });
+  }
+
   Future<void> shot(
     WidgetTester tester,
     AppStore store,
     Widget home,
     String name, {
     ThemeData? theme,
+    List<String> localImages = const [],
   }) async {
     await prepare(tester);
     // 关掉测试环境对阴影的硬边替代，截图更接近真机。
     debugDisableShadows = false;
     try {
+      for (final path in localImages) {
+        await precacheLocal(tester, path);
+      }
       await tester.pumpWidget(_app(store, home, theme: theme));
       await tester.runAsync(() async {
         final context = tester.element(find.byType(MaterialApp));
@@ -208,12 +270,12 @@ void main() {
 
   testWidgets('home', (tester) async {
     final store = _homeStore();
-    await shot(tester, store, RootShell(store: store), 'brand3_home');
+    await shot(tester, store, RootShell(store: store), 'v4_home');
   }, skip: skip);
 
   testWidgets('chat', (tester) async {
     final store = _chatStore();
-    await shot(tester, store, ChatView(store: store), 'brand3_chat');
+    await shot(tester, store, ChatView(store: store), 'v4_chat');
   }, skip: skip);
 
   testWidgets('settings', (tester) async {
@@ -222,13 +284,13 @@ void main() {
       tester,
       store,
       SettingsView(store: store),
-      'brand3_settings',
+      'v4_settings',
     );
   }, skip: skip);
 
   testWidgets('models', (tester) async {
     final store = _modelsStore();
-    await shot(tester, store, ModelsView(store: store), 'brand3_models');
+    await shot(tester, store, ModelsView(store: store), 'v4_models');
   }, skip: skip);
 
   testWidgets('oled', (tester) async {
@@ -238,7 +300,7 @@ void main() {
       tester,
       store,
       SettingsView(store: store),
-      'brand3_oled',
+      'v4_oled',
       theme: AppTheme.build(
         AppTheme.schemeFor(
           brightness: Brightness.dark,
@@ -246,6 +308,19 @@ void main() {
           oled: true,
         ),
       ),
+    );
+  }, skip: skip);
+
+  testWidgets('vision_chat', (tester) async {
+    final imagePath = _sampleImage();
+    addTearDown(() => File(imagePath).parent.deleteSync(recursive: true));
+    final store = _visionStore(imagePath);
+    await shot(
+      tester,
+      store,
+      ChatView(store: store),
+      'v4_vision_chat',
+      localImages: [imagePath],
     );
   }, skip: skip);
 }

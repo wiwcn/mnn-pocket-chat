@@ -20,6 +20,7 @@ class ModelSpec {
     required this.temperature,
     required this.topP,
     required this.topK,
+    this.vision = false,
   });
 
   final String id;
@@ -38,6 +39,8 @@ class ModelSpec {
   final double temperature;
   final double topP;
   final int topK;
+  /// 是否支持图片输入（MNN Omni 引擎的视觉编码器）。
+  final bool vision;
 
   String get paramsLabel {
     if (paramsB < 0.2) return '${(paramsB * 1000).round()}M';
@@ -62,8 +65,29 @@ class ModelSpec {
       temperature: (json['temperature'] as num?)?.toDouble() ?? 0.7,
       topP: (json['topP'] as num?)?.toDouble() ?? 0.9,
       topK: (json['topK'] as num?)?.toInt() ?? 40,
+      vision: json['vision'] == true,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'vendor': vendor,
+        'paramsB': paramsB,
+        'sizeBytes': sizeBytes,
+        'contextLength': contextLength,
+        'quant': quant,
+        'description': description,
+        'tags': tags,
+        'modelScopeRepo': modelScopeRepo,
+        'hfRepo': hfRepo,
+        'accent': accentHex,
+        'recommended': recommended,
+        'temperature': temperature,
+        'topP': topP,
+        'topK': topK,
+        if (vision) 'vision': true,
+      };
 }
 
 class ChatMessage {
@@ -71,21 +95,34 @@ class ChatMessage {
     required this.role,
     required this.content,
     this.stats,
+    this.imagePath,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
   final ChatRole role;
   String content;
   GenerationStats? stats;
+
+  /// 用户消息附带的本地图片绝对路径。
+  final String? imagePath;
   final DateTime createdAt;
 
   bool get isUser => role == ChatRole.user;
+
+  /// 发给引擎的 content：视觉模型靠 `<img>路径</img>` 标签触发图像编码。
+  String get engineContent {
+    final path = imagePath;
+    if (path == null) return content;
+    final tag = '<img>$path</img>';
+    return content.isEmpty ? tag : '$content\n$tag';
+  }
 
   ChatMessage copyWith({String? content, GenerationStats? stats}) {
     return ChatMessage(
       role: role,
       content: content ?? this.content,
       stats: stats ?? this.stats,
+      imagePath: imagePath,
       createdAt: createdAt,
     );
   }
@@ -93,6 +130,7 @@ class ChatMessage {
   Map<String, dynamic> toJson() => {
         'role': role.name,
         'content': content,
+        if (imagePath != null) 'image': imagePath,
         'createdAt': createdAt.millisecondsSinceEpoch,
         if (stats != null) 'stats': stats!.toJson(),
       };
@@ -104,6 +142,7 @@ class ChatMessage {
         orElse: () => ChatRole.assistant,
       ),
       content: json['content'] as String? ?? '',
+      imagePath: json['image'] as String?,
       stats: json['stats'] == null
           ? null
           : GenerationStats.fromJson(

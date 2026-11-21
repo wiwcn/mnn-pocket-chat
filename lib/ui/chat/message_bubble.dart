@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -73,11 +75,44 @@ class _UserBubble extends StatelessWidget {
                     color: scheme.primaryContainer,
                     borderRadius: BorderRadius.circular(32),
                   ),
-                  child: Text(
-                    message.content,
-                    style: text.bodyLarge?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (message.imagePath != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 220,
+                              maxHeight: 220,
+                            ),
+                            child: Image.file(
+                              File(message.imagePath!),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, _, _) => Container(
+                                width: 160,
+                                height: 120,
+                                color: scheme.surfaceContainerHighest,
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 28,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (message.content.isNotEmpty) const SizedBox(height: 8),
+                      ],
+                      if (message.content.isNotEmpty)
+                        Text(
+                          message.content,
+                          style: text.bodyLarge?.copyWith(
+                            color: scheme.onPrimaryContainer,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

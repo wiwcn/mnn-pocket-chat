@@ -9,7 +9,8 @@
 - 6 种主题色、OLED 纯黑、动态取色、浅色/深色
 - 模型标签筛选、厂商标识、已安装优先排序
 - 可调上下文长度 / temperature / top-p / top-k / 线程数
-- 仅 `arm64-v8a`，`minSdk 26`（当前版本 0.3.1）
+- 图片多模态：相册选图后由 MNN 视觉编码器理解画面
+- 仅 `arm64-v8a`，`minSdk 26`（当前版本 0.4.0）
 
 ## 界面
 
@@ -21,15 +22,23 @@
 
 | 对话 | 聊天 |
 | :-: | :-: |
-| <img src="screenshots/brand3_home.png" width="230"/> | <img src="screenshots/brand3_chat.png" width="230"/> |
+| <img src="screenshots/v4_home.png" width="230"/> | <img src="screenshots/v4_chat.png" width="230"/> |
 
 | 设置 | 本地模型 |
 | :-: | :-: |
-| <img src="screenshots/brand3_settings.png" width="230"/> | <img src="screenshots/brand3_models.png" width="230"/> |
+| <img src="screenshots/v4_settings.png" width="230"/> | <img src="screenshots/v4_models.png" width="230"/> |
 
-| OLED 纯黑 |
-| :-: |
-| <img src="screenshots/brand3_oled.png" width="230"/> |
+| OLED 纯黑 | 图片多模态 |
+| :-: | :-: |
+| <img src="screenshots/v4_oled.png" width="230"/> | <img src="screenshots/v4_vision_chat.png" width="230"/> |
+
+## 图片多模态
+
+当前支持 **SmolVLM 256M**（`MNN/SmolVLM-256M-Instruct-MNN`）。选中该模型后，输入框左侧会出现图片按钮：从相册选择图片，App 会把它复制到应用私有目录，并以绝对路径嵌入到消息中。
+
+发送时，用户消息的 content 会附带 `<img>绝对路径</img>` 标签（界面上不显示该标签）。MNN 3.6.2 的 Omni 引擎在 tokenizer 阶段识别这一标签，自动解码图片并运行视觉编码器，无需额外配置。图片消息可以不带文字，此时默认文本为「描述这张图片。」。
+
+纯文本模型不会显示附件入口，也不会看到任何图片相关提示。
 
 
 ## 为什么原版 MNN Chat 不支持 MNN-Pocket-0.3B？
@@ -71,6 +80,7 @@
 | Hunyuan 0.5B | 0.5B | ~383 MiB | 32K | 混合思考 |
 | ERNIE 4.5 0.3B | 0.3B | ~269 MiB | 32K | 轻量底座 |
 | SmolLM2 360M / 135M | 0.36B / 0.135B | ~311 / 138 MiB | 8K | 英文 |
+| SmolVLM 256M | 0.256B | ~297 MiB | 8K | 图片理解，多模态 |
 | MobileLLM 125M / 350M / 600M | 0.125–0.6B | ~114–401 MiB | 4K | 英文 |
 | Qwen2 0.5B | 0.5B | ~532 MiB | 32K | 兼容性验证充分 |
 
@@ -120,7 +130,7 @@ flutter build apk --release --target-platform android-arm64
 
 ## 已知限制
 
-- 只实现文本对话；视觉/音频/Omni 模型未接入。
+- 视觉仅支持图片输入（SmolVLM 256M）；音频与 Omni 流式语音未接入。
 - 下载在前台进行，切后台可能被系统冻结。
 - OpenCL 后端视设备而定，默认 CPU；调用参数变化需重新加载模型。
 - 0.3B–0.6B 模型适合短对话、改写、分类、抽取；复杂推理效果有限。

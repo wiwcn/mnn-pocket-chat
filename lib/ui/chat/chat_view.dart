@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/models.dart';
+import '../../services/image_attachments.dart';
 import '../../state/app_store.dart';
 import '../widgets/model_icon.dart';
 import 'message_bubble.dart';
@@ -23,6 +25,7 @@ class _ChatViewState extends State<ChatView> {
   bool _atBottom = true;
   Timer? _ticker;
   DateTime? _startedAt;
+  String? _pendingImage;
 
   @override
   void initState() {
@@ -73,13 +76,23 @@ class _ChatViewState extends State<ChatView> {
 
   void _send() {
     final value = _input.text.trim();
-    if (value.isEmpty || widget.store.generating || !widget.store.modelReady) {
+    final image = _pendingImage;
+    if ((value.isEmpty && image == null) ||
+        widget.store.generating ||
+        !widget.store.modelReady) {
       return;
     }
     _input.clear();
+    setState(() => _pendingImage = null);
     HapticFeedback.lightImpact();
-    widget.store.send(value);
+    widget.store.send(value, imagePath: image);
     _atBottom = true;
+  }
+
+  Future<void> _pickImage() async {
+    final path = await pickAndStoreImage();
+    if (!mounted || path == null) return;
+    setState(() => _pendingImage = path);
   }
 
   @override
@@ -218,6 +231,9 @@ class _ChatViewState extends State<ChatView> {
                   child: _ChatInputBox(
                     store: store,
                     controller: _input,
+                    pendingImage: _pendingImage,
+                    onPickImage: _pickImage,
+                    onClearImage: () => setState(() => _pendingImage = null),
                     onSend: _send,
                   ),
                 ),
@@ -287,89 +303,165 @@ class _ChatInputBox extends StatelessWidget {
   const _ChatInputBox({
     required this.store,
     required this.controller,
+    required this.pendingImage,
+    required this.onPickImage,
+    required this.onClearImage,
     required this.onSend,
   });
 
   final AppStore store;
   final TextEditingController controller;
+  final String? pendingImage;
+  final VoidCallback onPickImage;
+  final VoidCallback onClearImage;
   final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final canSend = controller.text.trim().isNotEmpty &&
+    final canSend = (controller.text.trim().isNotEmpty ||
+            pendingImage != null) &&
         !store.generating &&
         store.modelReady;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Material(
-        elevation: 2,
-        color: scheme.surfaceContainerHigh,
-        surfaceTintColor: Colors.transparent,
-        shadowColor: scheme.shadow.withValues(alpha: 0.24),
-        borderRadius: BorderRadius.circular(28),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              IconButton(
-                tooltip: '附件',
-                iconSize: 22,
-                color: scheme.onSurfaceVariant,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('暂不支持附件'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.attach_file),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (pendingImage != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 8),
+              child: _PendingImagePreview(
+                path: pendingImage!,
+                onClear: onClearImage,
               ),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  minLines: 1,
-                  maxLines: 5,
-                  enabled: !store.modelLoading,
-                  keyboardType: TextInputType.multiline,
-                  style: text.bodyLarge?.copyWith(color: scheme.onSurface),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: '问点什么…',
-                    hintStyle: text.bodyLarge?.copyWith(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.38),
+            ),
+          Material(
+            elevation: 2,
+            color: scheme.surfaceContainerHigh,
+            surfaceTintColor: Colors.transparent,
+            shadowColor: scheme.shadow.withValues(alpha: 0.24),
+            borderRadius: BorderRadius.circular(28),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (store.activeModel?.vision == true)
+                    IconButton(
+                      tooltip: '添加图片',
+                      iconSize: 22,
+                      color: scheme.onSurfaceVariant,
+                      onPressed: store.canAttachImage ? onPickImage : null,
+                      icon: const Icon(Icons.add_photo_alternate_outlined),
                     ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 12,
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      minLines: 1,
+                      maxLines: 5,
+                      enabled: !store.modelLoading,
+                      keyboardType: TextInputType.multiline,
+                      style: text.bodyLarge?.copyWith(color: scheme.onSurface),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: '问点什么…',
+                        hintStyle: text.bodyLarge?.copyWith(
+                          color:
+                              scheme.onSurfaceVariant.withValues(alpha: 0.38),
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                      ),
                     ),
+                  ),
+                  if (store.generating)
+                    IconButton(
+                      tooltip: '停止',
+                      iconSize: 22,
+                      onPressed: store.stopGeneration,
+                      icon: const Icon(Icons.stop),
+                    )
+                  else
+                    IconButton(
+                      tooltip: '发送',
+                      iconSize: 22,
+                      onPressed: canSend ? onSend : null,
+                      icon: const Icon(Icons.send),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingImagePreview extends StatelessWidget {
+  const _PendingImagePreview({required this.path, required this.onClear});
+
+  final String path;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 72,
+      height: 72,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(path),
+              width: 72,
+              height: 72,
+              fit: BoxFit.cover,
+              errorBuilder: (context, _, _) => Container(
+                width: 72,
+                height: 72,
+                color: scheme.surfaceContainerHighest,
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  size: 24,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Material(
+              color: scheme.surfaceContainerHighest,
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onClear,
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Icon(
+                    Icons.close,
+                    size: 14,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
-              if (store.generating)
-                IconButton(
-                  tooltip: '停止',
-                  iconSize: 22,
-                  onPressed: store.stopGeneration,
-                  icon: const Icon(Icons.stop),
-                )
-              else
-                IconButton(
-                  tooltip: '发送',
-                  iconSize: 22,
-                  onPressed: canSend ? onSend : null,
-                  icon: const Icon(Icons.send),
-                ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

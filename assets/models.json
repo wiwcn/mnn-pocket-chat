@@ -169,6 +169,29 @@
     "topK": 40
   },
   {
+    "id": "smolvlm-256m",
+    "name": "SmolVLM 256M",
+    "vendor": "HuggingFace",
+    "paramsB": 0.256,
+    "sizeBytes": 311431857,
+    "contextLength": 8192,
+    "quant": "bf16",
+    "description": "HuggingFace 的 256M 视觉语言模型，可识别图片、读取画面文字，适合端侧看图问答。",
+    "tags": [
+      "多模态",
+      "超小",
+      "English"
+    ],
+    "modelScopeRepo": "MNN/SmolVLM-256M-Instruct-MNN",
+    "hfRepo": "taobao-mnn/SmolVLM-256M-Instruct-MNN",
+    "accent": "#00796B",
+    "recommended": false,
+    "temperature": 0.7,
+    "topP": 0.9,
+    "topK": 40,
+    "vision": true
+  },
+  {
     "id": "MobileLLM-125M-MNN",
     "name": "MobileLLM 125M",
     "vendor": "Meta",

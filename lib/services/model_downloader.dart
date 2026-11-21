@@ -136,7 +136,7 @@ class ModelDownloader {
       return false;
     }
     const allowed = [
-      '.mnn', '.weight', '.mtok', '.json', '.txt', '.jinja',
+      '.mnn', '.weight', '.mtok', '.json', '.txt', '.jinja', '.bin',
     ];
     return allowed.any(lower.endsWith) ||
         lower.contains('.mnn.weight.') ||

@@ -301,13 +301,21 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> send(String text) async {
+  bool get canAttachImage =>
+      modelReady && !generating && activeModel?.vision == true;
+
+  Future<void> send(String text, {String? imagePath}) async {
     final session = activeSession;
     if (session == null || generating || !modelReady) return;
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    var trimmed = text.trim();
+    if (trimmed.isEmpty && imagePath == null) return;
+    if (trimmed.isEmpty) trimmed = '描述这张图片。';
 
-    session.messages.add(ChatMessage(role: ChatRole.user, content: trimmed));
+    session.messages.add(ChatMessage(
+      role: ChatRole.user,
+      content: trimmed,
+      imagePath: imagePath,
+    ));
     if (session.messages.length == 1) {
       session.title = trimmed.length > 24 ? '${trimmed.substring(0, 24)}…' : trimmed;
     }
@@ -321,6 +329,12 @@ class AppStore extends ChangeNotifier {
 
     final history = session.messages
         .where((m) => m != session.messages.last)
+        .map((m) => ChatMessage(
+              role: m.role,
+              content: m.engineContent,
+              stats: m.stats,
+              createdAt: m.createdAt,
+            ))
         .toList();
     final limit = settings.contextMessages.clamp(1, 200);
     final recent = history.length > limit
