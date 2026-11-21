@@ -2,6 +2,7 @@ package ai.mnn.pocket
 
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.Keep
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -173,19 +174,27 @@ class MnnLlmBridge(messenger: BinaryMessenger, logDir: String? = null) :
         }
     }
 
+    // JNI 通过 GetMethodID 按名字反射调用这些方法；必须用 @Keep 防止 R8
+    // 在 release 构建中混淆方法名，否则 GetMethodID 失败抛 NoSuchMethodError
+    // 并触发 pending exception 连锁 abort。
+    @Keep
     private val nativeCallback = object : NativeCallback {
+        @Keep
         override fun onToken(text: String) {
             emit(mapOf("type" to "token", "text" to text))
         }
 
+        @Keep
         override fun onDone(statsJson: String) {
             emit(mapOf("type" to "done", "stats" to statsJson))
         }
 
+        @Keep
         override fun onError(message: String) {
             emit(mapOf("type" to "error", "message" to message))
         }
 
+        @Keep
         override fun onStage(stage: String) {
             emit(mapOf("type" to "stage", "message" to stage))
         }
@@ -225,9 +234,14 @@ class MnnLlmBridge(messenger: BinaryMessenger, logDir: String? = null) :
     }
 }
 
+@Keep
 interface NativeCallback {
+    @Keep
     fun onToken(text: String)
+    @Keep
     fun onDone(statsJson: String)
+    @Keep
     fun onError(message: String)
+    @Keep
     fun onStage(stage: String)
 }

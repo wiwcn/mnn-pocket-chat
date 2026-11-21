@@ -64,6 +64,13 @@ android {
                 abiFilters.clear()
                 abiFilters.add("arm64-v8a")
             }
+            // 启用代码缩减以走 proguard-rules.pro 的 keep 规则；该规则保留
+            // JNI 反射所需的 NativeCallback 方法名，避免 release 混淆后闪退。
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")

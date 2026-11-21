@@ -360,19 +360,47 @@ struct JavaCallback {
     }
 
     bool bind(JNIEnv* env, jobject callbackObject) {
+        // 进入时确保没有遗留的 pending exception。JNI 规范：带 pending
+        // exception 调用多数 JNI 函数是未定义行为，ART 会触发
+        // AssertNoPendingExceptionForNewException → abort (SIGABRT)。
+        if (env->ExceptionCheck()) env->ExceptionClear();
+
+        // 逐步查找并即时清理。GetMethodID 找不到方法会抛 NoSuchMethodError
+        // 并设置 pending exception；若不立即清除，下一次 GetMethodID 会让
+        // ART 因"已有未决异常时又抛新异常"直接 abort。Kotlin 侧已用 @Keep +
+        // proguard 规则保住方法名，这里再做防御，确保即使反射失败也不闪退。
+        auto clearPending = [&]() {
+            if (env->ExceptionCheck()) {
+                env->ExceptionDescribe();
+                env->ExceptionClear();
+            }
+        };
+
+        jclass cls = env->GetObjectClass(callbackObject);
+        clearPending();
+        if (cls == nullptr) return false;
+
+        onToken = env->GetMethodID(cls, "onToken", "(Ljava/lang/String;)V");
+        clearPending();
+        onDone = env->GetMethodID(cls, "onDone", "(Ljava/lang/String;)V");
+        clearPending();
+        onError = env->GetMethodID(cls, "onError", "(Ljava/lang/String;)V");
+        clearPending();
+        onStage = env->GetMethodID(cls, "onStage", "(Ljava/lang/String;)V");
+        clearPending();
+        env->DeleteLocalRef(cls);
+
+        valid = onToken != nullptr && onDone != nullptr &&
+                onError != nullptr && onStage != nullptr;
+        if (!valid) {
+            traceStage("JavaCallback::bind: method lookup FAILED");
+            return false;
+        }
         // 必须用全局引用：MNN 的流式 token 回调可能来自内部线程，局部引用
         // 跨线程使用是未定义行为，官方 MNN Chat 同样使用 NewGlobalRef。
         object = env->NewGlobalRef(callbackObject);
-        jclass cls = env->GetObjectClass(callbackObject);
-        if (cls == nullptr) return false;
-        onToken = env->GetMethodID(cls, "onToken", "(Ljava/lang/String;)V");
-        onDone = env->GetMethodID(cls, "onDone", "(Ljava/lang/String;)V");
-        onError = env->GetMethodID(cls, "onError", "(Ljava/lang/String;)V");
-        onStage = env->GetMethodID(cls, "onStage", "(Ljava/lang/String;)V");
-        env->DeleteLocalRef(cls);
-        valid = onToken != nullptr && onDone != nullptr && onError != nullptr;
-        if (env->ExceptionCheck()) env->ExceptionClear();
-        return valid;
+        clearPending();
+        return object != nullptr;
     }
 
     void release(JNIEnv* env) {
