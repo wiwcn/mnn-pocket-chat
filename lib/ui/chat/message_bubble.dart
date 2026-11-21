@@ -8,18 +8,38 @@ class MessageBubble extends StatelessWidget {
     super.key,
     required this.message,
     required this.streaming,
-    required this.modelName,
   });
 
   final ChatMessage message;
   final bool streaming;
-  final String modelName;
 
   @override
   Widget build(BuildContext context) {
     if (message.isUser) return _UserBubble(message: message);
     return _AssistantMessage(message: message, streaming: streaming);
   }
+}
+
+Future<void> _showCopySheet(BuildContext context, String value) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.copy_outlined),
+            title: const Text('复制'),
+            onTap: () async {
+              Navigator.pop(sheetContext);
+              await Clipboard.setData(ClipboardData(text: value));
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
 }
 
 class _UserBubble extends StatelessWidget {
@@ -30,36 +50,41 @@ class _UserBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.centerRight,
-      child: GestureDetector(
-        onLongPress: () => _copy(context, message.content),
-        child: Container(
-          margin: const EdgeInsets.only(left: 64, bottom: 20),
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-          decoration: BoxDecoration(
-            color: scheme.secondaryContainer,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: SelectableText(
-            message.content,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: scheme.onSecondaryContainer,
-                  fontSize: 14.5,
-                  height: 1.5,
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Align(
+            alignment: Alignment.centerRight,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.8),
+              child: GestureDetector(
+                onLongPress: () => _showCopySheet(context, message.content),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  child: Text(
+                    message.content,
+                    style: text.bodyLarge?.copyWith(
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
                 ),
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _AssistantMessage extends StatelessWidget {
-  const _AssistantMessage({
-    required this.message,
-    required this.streaming,
-  });
+  const _AssistantMessage({required this.message, required this.streaming});
 
   final ChatMessage message;
   final bool streaming;
@@ -67,46 +92,58 @@ class _AssistantMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
     final parts = splitThinking(message.content);
-    final showThinking = parts.thinking.trim().isNotEmpty;
+    final thinking = parts.thinking.trim();
     final answer = parts.answer;
-    final waitingFirstToken = streaming && message.content.isEmpty;
+    final waitingFirstToken = streaming && message.content.trim().isEmpty;
 
     return Padding(
-      padding: const EdgeInsets.only(right: 12, bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showThinking)
-            _ThinkingSection(
-              thinking: parts.thinking,
-              open: streaming && answer.isEmpty,
+          if (thinking.isNotEmpty)
+            _ThinkingSection(thinking: thinking, open: streaming && answer.isEmpty),
+          Container(
+            width: double.infinity,
+            color: scheme.surface,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (waitingFirstToken)
+                  Text(
+                    '●',
+                    style: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  )
+                else
+                  StreamingMarkdown(answer: answer, streaming: streaming),
+              ],
             ),
-          if (waitingFirstToken)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: TypingDots(),
-            )
-          else if (answer.trim().isNotEmpty)
-            GestureDetector(
-              onLongPress: () => _copy(context, answer),
-              child: StreamingMarkdown(answer: answer, streaming: streaming),
-            ),
-          if (!streaming && answer.trim().isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: SizedBox(
-                width: 32,
-                height: 32,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: '复制',
-                  iconSize: 16,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  onPressed: () => _copy(context, answer),
-                  icon: const Icon(Icons.copy_rounded),
-                ),
+          ),
+          if (!streaming)
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                tooltip: '复制',
+                iconSize: 20,
+                color: scheme.onSurfaceVariant,
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: answer));
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('已复制'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.copy_outlined),
               ),
             ),
         ],
@@ -144,25 +181,23 @@ class _ThinkingSectionState extends State<_ThinkingSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(32),
             onTap: () => setState(() => _open = !_open),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '思考过程',
-                    style: text.labelMedium?.copyWith(
+                    '详情',
+                    style: text.labelLarge?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: 4),
                   Icon(
-                    _open
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                    size: 18,
+                    _open ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    size: 20,
                     color: scheme.onSurfaceVariant,
                   ),
                 ],
@@ -171,12 +206,11 @@ class _ThinkingSectionState extends State<_ThinkingSection> {
           ),
           if (_open)
             Padding(
-              padding: const EdgeInsets.only(left: 2, bottom: 8),
+              padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
               child: SelectableText(
-                widget.thinking.trim(),
-                style: text.bodySmall?.copyWith(
+                widget.thinking,
+                style: text.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
-                  height: 1.5,
                 ),
               ),
             ),
@@ -209,11 +243,7 @@ class StreamingMarkdown extends StatelessWidget {
         if (chunk.trim().isEmpty) continue;
         children.add(_richChunk(
           chunk.trim(),
-          text.bodyMedium?.copyWith(
-            fontSize: 14.5,
-            height: 1.55,
-            color: scheme.onSurface,
-          ),
+          text.bodyLarge?.copyWith(color: scheme.onSurface),
         ));
       } else {
         final lines = chunk.split('\n');
@@ -226,9 +256,9 @@ class StreamingMarkdown extends StatelessWidget {
         }
         children.add(Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHigh.withValues(alpha: 0.55),
+            color: scheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -241,9 +271,6 @@ class StreamingMarkdown extends StatelessWidget {
                     language.toUpperCase(),
                     style: text.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
-                      fontSize: 9.5,
-                      letterSpacing: 0.5,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -264,56 +291,18 @@ class StreamingMarkdown extends StatelessWidget {
         ));
       }
     }
-    if (children.isEmpty) {
-      children.add(const SizedBox(height: 4));
-    }
     if (streaming) {
-      children.add(const StreamingCursor());
+      children.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Text(
+          '●',
+          style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+      ));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: children,
-    );
-  }
-}
-
-class StreamingCursor extends StatelessWidget {
-  const StreamingCursor({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 7,
-      height: 15,
-      margin: const EdgeInsets.only(top: 5),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-  }
-}
-
-class TypingDots extends StatelessWidget {
-  const TypingDots({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < 3; i++)
-          Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsets.only(right: 4),
-            decoration: BoxDecoration(
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-          ),
-      ],
     );
   }
 }
@@ -366,12 +355,4 @@ Widget _richChunk(String raw, TextStyle? style) {
     }
   }
   return (thinking: thinking ?? '', answer: answer);
-}
-
-Future<void> _copy(BuildContext context, String value) async {
-  await Clipboard.setData(ClipboardData(text: value));
-  if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('已复制'), duration: Duration(seconds: 1)),
-  );
 }

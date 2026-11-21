@@ -19,14 +19,12 @@ class MnnPocketApp extends StatelessWidget {
       ]),
       builder: (context, _) {
         Widget buildWith(ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-          final light = AppTheme.scheme(
-            Brightness.light,
-            store.dynamicColor ? lightDynamic : null,
-          );
-          final dark = AppTheme.scheme(
-            Brightness.dark,
-            store.dynamicColor ? darkDynamic : null,
-          );
+          final light = store.dynamicColor
+              ? (lightDynamic ?? AppTheme.lightScheme)
+              : AppTheme.lightScheme;
+          final dark = store.dynamicColor
+              ? (darkDynamic ?? AppTheme.darkScheme)
+              : AppTheme.darkScheme;
           return MaterialApp(
             title: 'MNN Pocket',
             debugShowCheckedModeBanner: false,

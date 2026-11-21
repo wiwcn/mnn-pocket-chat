@@ -1,344 +1,322 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/format.dart';
 import '../../core/models.dart';
 import '../../state/app_store.dart';
-import '../widgets/common.dart';
-import 'session_sheet.dart';
+import '../models/models_view.dart';
+import '../settings/settings_view.dart';
+import 'chat_view.dart';
 
-class WelcomeView extends StatelessWidget {
+/// gpt_mobile HomeScreen 的 Flutter 版本：对话列表 + 搜索 + 设置入口。
+class WelcomeView extends StatefulWidget {
   const WelcomeView({super.key, required this.store});
 
   final AppStore store;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    final installedModels =
-        store.catalog.where((m) => store.isInstalled(m.id)).toList();
-    final recent = store.sessions.take(3).toList();
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        kPagePadding,
-        12,
-        kPagePadding,
-        120,
-      ),
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: scheme.primary,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(Icons.memory_rounded,
-                  color: scheme.onPrimary, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MNN Pocket',
-                  style: text.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  '本地推理 · 离线可用',
-                  style: text.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 11.5,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            IconButton.filledTonal(
-              tooltip: '对话历史',
-              iconSize: 20,
-              onPressed: () => showSessionsSheet(context, store),
-              icon: const Icon(Icons.history_rounded),
-            ),
-          ],
-        ),
-        if (store.engineError != null) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(
-              color: scheme.errorContainer,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.error_outline_rounded,
-                    size: 18, color: scheme.onErrorContainer),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    store.engineError!,
-                    style: text.bodySmall
-                        ?.copyWith(color: scheme.onErrorContainer),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 28),
-        Text(
-          '在手机上\n和 0.3B 对话',
-          style: text.displaySmall?.copyWith(fontSize: 34, height: 1.16),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '专为 1B 以下端侧模型打造的 MNN 客户端。\n下载、加载、对话，全程离线。',
-          style: text.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-            height: 1.55,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              flex: 3,
-              child: FilledButton.icon(
-                onPressed: installedModels.isEmpty
-                    ? () => store.setTab(1)
-                    : () => showModelPicker(context, store),
-                icon: const Icon(Icons.bolt_rounded, size: 20),
-                label: const Text('开始对话'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 2,
-              child: OutlinedButton(
-                onPressed: () => store.setTab(1),
-                child: const Text('浏览模型'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
-        SectionLabel(
-          title: '已下载模型',
-          trailing: TextButton(
-            onPressed: () => store.setTab(1),
-            child: const Text('全部'),
-          ),
-        ),
-        if (installedModels.isEmpty)
-          GroupCard(
-            padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-            onTap: () => store.setTab(1),
-            child: Row(
-              children: [
-                const RoundIcon(icon: Icons.download_for_offline_rounded),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '下载第一个模型',
-                        style: text.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '推荐 MNN Pocket 0.3B，仅 166 MB',
-                        style: text.bodySmall
-                            ?.copyWith(color: scheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded,
-                    color: scheme.onSurfaceVariant),
-              ],
-            ),
-          )
-        else
-          SizedBox(
-            height: 164,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              itemCount: installedModels.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final model = installedModels[index];
-                return _QuickModelCard(
-                  model: model,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    store.startChat(model);
-                  },
-                );
-              },
-            ),
-          ),
-        if (recent.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          SectionLabel(
-            title: '最近对话',
-            trailing: TextButton(
-              onPressed: () => showSessionsSheet(context, store),
-              child: const Text('历史'),
-            ),
-          ),
-          GroupCard(
-            child: Column(
-              children: [
-                for (var i = 0; i < recent.length; i++) ...[
-                  if (i > 0) const GroupDivider(indent: 66, endIndent: 0),
-                  _RecentRow(
-                    session: recent[i],
-                    onTap: () => store.openSession(recent[i]),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+  State<WelcomeView> createState() => _WelcomeViewState();
 }
 
-class _QuickModelCard extends StatelessWidget {
-  const _QuickModelCard({required this.model, required this.onTap});
+class _WelcomeViewState extends State<WelcomeView> {
+  final TextEditingController _search = TextEditingController();
+  bool _searching = false;
 
-  final ModelSpec model;
-  final VoidCallback onTap;
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<ChatSession> _filtered(List<ChatSession> sessions) {
+    final query = _search.text.trim().toLowerCase();
+    if (query.isEmpty) return sessions;
+    return sessions
+        .where(
+          (s) =>
+              s.title.toLowerCase().contains(query) ||
+              s.modelName.toLowerCase().contains(query),
+        )
+        .toList();
+  }
+
+  void _exitSearch() {
+    setState(() {
+      _searching = false;
+      _search.clear();
+    });
+  }
+
+  Future<void> _pushChat() async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => ChatView(store: widget.store)),
+    );
+  }
+
+  Future<void> _startNewChat() async {
+    final store = widget.store;
+    final installed = store.catalog.where((m) => store.isInstalled(m.id));
+    if (installed.isEmpty) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => ModelsView(store: store)),
+      );
+      return;
+    }
+    await store.startChat(installed.first);
+    await _pushChat();
+  }
+
+  Future<void> _openSession(ChatSession session) async {
+    await widget.store.openSession(session);
+    await _pushChat();
+  }
+
+  Future<void> _confirmDelete(ChatSession session) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除对话？'),
+        content: const Text('此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await widget.store.deleteSession(session);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return SpringScale(
-      onTap: onTap,
-      child: Container(
-        width: 168,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const RoundIcon(
-              icon: Icons.memory_rounded,
-              size: 44,
-              iconSize: 22,
-            ),
-            const Spacer(),
-            Text(
-              model.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: text.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                height: 1.25,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${model.paramsLabel} · ${formatBytes(model.sizeBytes)}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: text.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontSize: 11.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.check_circle_rounded,
-                    size: 13, color: scheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  '已安装',
-                  style: text.labelSmall?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w700,
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) {
+        final sessions = _filtered(widget.store.sessions);
+        final scheme = Theme.of(context).colorScheme;
+        final text = Theme.of(context).textTheme;
+
+        return Scaffold(
+          backgroundColor: scheme.surface,
+          appBar: AppBar(
+            toolbarHeight: 64,
+            leading: _searching
+                ? IconButton(
+                    tooltip: '返回',
+                    onPressed: _exitSearch,
+                    icon: const Icon(Icons.arrow_back),
+                  )
+                : IconButton(
+                    tooltip: '搜索对话',
+                    onPressed: () => setState(() => _searching = true),
+                    icon: const Icon(Icons.search),
                   ),
+            title: _searching
+                ? TextField(
+                    controller: _search,
+                    autofocus: true,
+                    style: text.titleMedium?.copyWith(color: scheme.onSurface),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: '搜索对话',
+                      hintStyle: text.titleMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  )
+                : const Text('对话'),
+            actions: [
+              if (!_searching)
+                IconButton(
+                  tooltip: '设置',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SettingsView(store: widget.store),
+                    ),
+                  ),
+                  icon: const Icon(Icons.settings_outlined),
                 ),
-              ],
-            ),
-          ],
-        ),
+              if (_searching && _search.text.isNotEmpty)
+                IconButton(
+                  tooltip: '清除',
+                  onPressed: _search.clear,
+                  icon: const Icon(Icons.close),
+                ),
+            ],
+          ),
+          floatingActionButton: sessions.isEmpty
+              ? null
+              : FloatingActionButton.extended(
+                  onPressed: _startNewChat,
+                  icon: const Icon(Icons.add),
+                  label: const Text('新对话'),
+                ),
+          body: sessions.isEmpty
+              ? _EmptyChats(onStart: _startNewChat, searching: _searching)
+              : ListView(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  children: [
+                    if (!_searching) const _ChatsTitle(),
+                    for (final session in sessions)
+                      _SessionItem(
+                        session: session,
+                        onTap: () => _openSession(session),
+                        onLongPress: () => _confirmDelete(session),
+                      ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _ChatsTitle extends StatelessWidget {
+  const _ChatsTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 32),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Text('对话', style: Theme.of(context).textTheme.headlineLarge),
       ),
     );
   }
 }
 
-class _RecentRow extends StatelessWidget {
-  const _RecentRow({required this.session, required this.onTap});
+class _SessionItem extends StatelessWidget {
+  const _SessionItem({
+    required this.session,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   final ChatSession session;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
-        child: Row(
-          children: [
-            const RoundIcon(
-              icon: Icons.chat_bubble_outline_rounded,
-              size: 40,
-              iconSize: 19,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Material(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          onLongPress: onLongPress,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 72),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
                 children: [
-                  Text(
-                    session.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 24,
+                    color: scheme.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${session.modelName} · ${relativeTime(session.updatedAt)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 11.5,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.titleMedium,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '使用 ${session.modelName}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                size: 20, color: scheme.onSurfaceVariant),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyChats extends StatelessWidget {
+  const _EmptyChats({required this.onStart, required this.searching});
+
+  final VoidCallback onStart;
+  final bool searching;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                searching ? '没有搜索结果' : '还没有对话',
+                textAlign: TextAlign.center,
+                style: text.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                searching ? '换个关键词试试' : '开始一个新的本地对话',
+                textAlign: TextAlign.center,
+                style: text.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              if (!searching) ...[
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: onStart,
+                    child: const Text('开始新对话'),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,25 +1,25 @@
 # MNN Pocket Chat
 
-一个使用 **Flutter + Material 3 Expressive** 重写的 MNN Android 聊天客户端，专注 **1B 以下** 端侧模型，并把 `MNN-Pocket-0.3B` 作为一等公民支持。
+一个使用 **Flutter** 重写的 MNN Android 聊天客户端，界面 1:1 移植自 [Taewan-P/gpt_mobile](https://github.com/Taewan-P/gpt_mobile)，专注 **1B 以下** 端侧模型，并把 `MNN-Pocket-0.3B` 作为一等公民支持。
 
 - 完全本地推理：MNN 3.6.2 `libllm.so` + Kotlin/JNI
 - 模型市场：ModelScope 优先，hf-mirror 自动回退
 - 断点续传、逐文件校验、下载进度
-- 流式输出、停止生成、思考过程折叠、tok/s 统计
+- 流式输出、停止生成、思考过程折叠、复制消息
 - 动态取色、浅色/深色、可调 temperature / top-p / top-k / 线程数
 - 仅 `arm64-v8a`，`minSdk 26`
 
 ## 界面
 
-视觉参考 [Taewan-P/gpt_mobile](https://github.com/Taewan-P/gpt_mobile)，采用绿色 Material 3 Expressive 设计。
+视觉参考 [Taewan-P/gpt_mobile](https://github.com/Taewan-P/gpt_mobile)，配色、圆角与列表结构均按原版 Compose 源码逐项还原。
 
-| 对话 | 模型库 | 聊天 |
-| :-: | :-: | :-: |
-| <img src="screenshots/m3e_green_01_welcome.png" width="230"/> | <img src="screenshots/m3e_green_02_models.png" width="230"/> | <img src="screenshots/m3e_green_03_chat_plain.png" width="230"/> |
-
-| 设置 | 会话历史 |
+| 对话 | 聊天 |
 | :-: | :-: |
-| <img src="screenshots/m3e_green_04_settings.png" width="230"/> | <img src="screenshots/m3e_green_05_history.png" width="230"/> |
+| <img src="screenshots/gptmobile_home.png" width="230"/> | <img src="screenshots/gptmobile_chat.png" width="230"/> |
+
+| 设置 | 本地模型 |
+| :-: | :-: |
+| <img src="screenshots/gptmobile_settings.png" width="230"/> | <img src="screenshots/gptmobile_models.png" width="230"/> |
 
 
 ## 为什么原版 MNN Chat 不支持 MNN-Pocket-0.3B？
@@ -69,7 +69,7 @@
 ## 架构
 
 ```
-Flutter UI (Material 3 Expressive)
+Flutter UI (gpt_mobile 风格)
   ├─ AppStore (ChangeNotifier)          lib/state/app_store.dart
   ├─ ModelDownloader (resume + verify)  lib/services/model_downloader.dart
   └─ MnnEngine (Method/EventChannel)    lib/services/mnn_engine.dart
