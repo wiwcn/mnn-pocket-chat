@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../core/models.dart';
 import '../services/background_downloads.dart';
 import '../services/chat_store.dart';
+import '../services/debug_log.dart';
 import '../services/mnn_engine.dart';
 import '../services/model_downloader.dart';
 
@@ -67,6 +68,7 @@ class AppStore extends ChangeNotifier {
 
   Future<void> init() async {
     if (!booting) return;
+    debugLog.info('app', 'init start');
     try {
       await engine.initialize();
       _engineSub = engine.events.listen(_onEngineEvent);
@@ -97,9 +99,12 @@ class AppStore extends ChangeNotifier {
       installed.addAll(
         await _store.scanInstalled(catalog.map((e) => e.id).toSet()),
       );
+      debugLog.info('app',
+          'init done: catalog=${catalog.length}, installed=${installed.length}, sessions=${sessions.length}, useMmap=${settings.useMmap}');
     } catch (e) {
       // 任一步失败都不能让 App 永远卡在启动闪屏。
       engineError = '初始化失败：$e';
+      debugLog.error('app', 'init failed: $e');
     } finally {
       booting = false;
       notifyListeners();
@@ -149,6 +154,22 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 更新 mmap 开关。已加载模型时先释放，下次加载按新设置生效。
+  Future<void> setUseMmap(bool value) async {
+    if (settings.useMmap == value) return;
+    settings.useMmap = value;
+    await _store.saveSettings(settings);
+    debugLog.info('settings', 'useMmap=$value');
+    if (modelReady) {
+      await debugLog.checkpoint('model', 'reload after mmap toggle');
+      await engine.release();
+      modelReady = false;
+      activeModel = null;
+      loadHint = '加载方式已更新，下次进入对话将重新加载';
+    }
+    notifyListeners();
+  }
+
   DownloadProgress _withSpeed(String id, DownloadProgress next) {
     final now = DateTime.now();
     final previous = downloads[id];
@@ -176,6 +197,7 @@ class AppStore extends ChangeNotifier {
   Future<String?> downloadModel(ModelSpec spec) async {
     if (downloads.containsKey(spec.id)) return null;
     _cancelled.remove(spec.id);
+    debugLog.info('download', 'start: ${spec.id} (${spec.sizeBytes} bytes)');
     try {
       unawaited(BackgroundDownloads.ensurePermission());
       unawaited(BackgroundDownloads.start(
@@ -208,18 +230,21 @@ class AppStore extends ChangeNotifier {
       _downloadTicks.remove(spec.id);
       _stopDownloadNotificationIfIdle();
       notifyListeners();
+      debugLog.info('download', 'done: ${spec.id}');
       return null;
     } on DownloadCancelled {
       downloads.remove(spec.id);
       _downloadTicks.remove(spec.id);
       _stopDownloadNotificationIfIdle();
       notifyListeners();
+      debugLog.info('download', 'cancelled: ${spec.id}');
       return '已取消下载';
     } catch (e) {
       downloads.remove(spec.id);
       _downloadTicks.remove(spec.id);
       _stopDownloadNotificationIfIdle();
       notifyListeners();
+      debugLog.error('download', 'failed: ${spec.id}, $e');
       return '下载失败：$e';
     }
   }
@@ -286,35 +311,47 @@ class AppStore extends ChangeNotifier {
     engineError = null;
     loadHint = '正在加载 ${spec.name}…';
     notifyListeners();
+    await debugLog.checkpoint('model',
+        'load start: id=${spec.id}, params=${spec.paramsLabel}, useMmap=${settings.useMmap}, threads=${settings.threads}, backend=${settings.backend}');
     try {
       await engine.release();
       final path = await _configPath(spec);
       // 用应用私有目录作为 mmap 临时路径，降低大模型推理时的内存峰值。
+      // 只有设置里开启 mmap 时才创建并使用该目录。
       String? mmapDir;
-      try {
-        final root = await _store.modelsDir();
-        mmapDir = p.join(root.path, '.mmap');
-        await Directory(mmapDir).create(recursive: true);
-      } catch (_) {
-        mmapDir = null;
+      if (settings.useMmap) {
+        try {
+          final root = await _store.modelsDir();
+          mmapDir = p.join(root.path, '.mmap');
+          await Directory(mmapDir).create(recursive: true);
+        } catch (_) {
+          mmapDir = null;
+        }
       }
 
+      final overrides =
+          settings.encodeOverrides(spec, mmapDir: mmapDir);
+      await debugLog.checkpoint('model', 'native load begin: $overrides');
       var ok = await engine.load(
         configPath: path,
-        overridesJson: settings.encodeOverrides(spec, mmapDir: mmapDir),
+        overridesJson: overrides,
       );
       // 部分模型/设备不支持 mmap，回退到整块加载再试一次。
-      if (!ok && mmapDir != null) {
+      if (!ok && mmapDir != null && settings.useMmap) {
+        await debugLog.checkpoint('model', 'mmap load failed, retry without mmap');
         ok = await engine.load(
           configPath: path,
-          overridesJson: settings.encodeOverrides(spec),
+          overridesJson:
+              settings.encodeOverrides(spec, useMmapOverride: false),
         );
       }
+      await debugLog.checkpoint('model', 'native load result: $ok');
       if (!ok) {
         activeModel = null;
         modelReady = false;
         engineError = '模型加载失败：请确认文件完整，或尝试降低线程数';
         loadHint = null;
+        debugLog.error('model', 'load failed: ${spec.id}');
         return false;
       }
       activeModel = spec;
@@ -333,6 +370,7 @@ class AppStore extends ChangeNotifier {
       modelReady = false;
       engineError = '模型加载失败：$e';
       loadHint = null;
+      debugLog.error('model', 'load exception: $e');
       return false;
     } finally {
       modelLoading = false;
@@ -423,6 +461,8 @@ class AppStore extends ChangeNotifier {
     stopping = false;
     engineError = null;
     notifyListeners();
+    await debugLog.checkpoint('chat',
+        'generate begin: session=${session.id}, history=${session.messages.length - 1}, maxTokens=${settings.maxNewTokens}, image=${imagePath != null}');
 
     final history = session.messages
         .where((m) => m != session.messages.last)
@@ -448,6 +488,7 @@ class AppStore extends ChangeNotifier {
       if (session.messages.isNotEmpty) {
         session.messages.last.content = '生成失败：$e';
       }
+      debugLog.error('chat', 'generate exception: $e');
       notifyListeners();
     }
   }
@@ -482,10 +523,15 @@ class AppStore extends ChangeNotifier {
     switch (event.type) {
       case 'token':
         if (session == null || session.messages.isEmpty) return;
+        if (session.messages.last.content.isEmpty) {
+          debugLog.info('chat', 'first token received');
+        }
         session.messages.last.content += event.text ?? '';
         notifyListeners();
         break;
       case 'done':
+        debugLog.info('chat',
+            'generate done: output=${event.stats?.outputTokens ?? 0}, elapsed=${event.stats?.elapsedMs ?? 0}ms');
         _finishStreaming(stats: event.stats);
         if (session != null && session.messages.isNotEmpty) {
           session.messages.last.stats = event.stats;
@@ -498,6 +544,7 @@ class AppStore extends ChangeNotifier {
       case 'error':
         _finishStreaming();
         final message = event.message ?? '未知错误';
+        debugLog.error('engine', 'generate error: $message');
         engineError = message;
         if (session != null &&
             session.messages.isNotEmpty &&
@@ -514,9 +561,11 @@ class AppStore extends ChangeNotifier {
       await stopGeneration();
       _finishStreaming();
     }
+    await debugLog.checkpoint('model', 'release begin');
     await engine.release();
     modelReady = false;
     activeModel = null;
+    debugLog.info('model', 'released');
     notifyListeners();
   }
 

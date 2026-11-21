@@ -247,6 +247,7 @@ class EngineSettings {
     this.contextMessages = 24,
     this.threads = 4,
     this.backend = 'cpu',
+    this.useMmap = true,
     this.systemPrompt =
         'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
   });
@@ -258,6 +259,8 @@ class EngineSettings {
   int contextMessages;
   int threads;
   String backend;
+  /// 是否用 mmap 方式加载权重（降低内存峰值）。可在设置里关闭以兼容部分机型。
+  bool useMmap;
   String systemPrompt;
 
   Map<String, dynamic> toJson() => {
@@ -268,6 +271,7 @@ class EngineSettings {
         'contextMessages': contextMessages,
         'threads': threads,
         'backend': backend,
+        'useMmap': useMmap,
         'systemPrompt': systemPrompt,
       };
 
@@ -280,12 +284,18 @@ class EngineSettings {
       contextMessages: (json['contextMessages'] as num?)?.toInt() ?? 24,
       threads: (json['threads'] as num?)?.toInt() ?? 4,
       backend: json['backend'] as String? ?? 'cpu',
+      useMmap: json['useMmap'] as bool? ?? true,
       systemPrompt: json['systemPrompt'] as String? ??
           'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
     );
   }
 
-  String encodeOverrides(ModelSpec model, {String? mmapDir}) {
+  /// [useMmapOverride] 用于加载失败时临时回退到非 mmap 重试，不改写持久化设置。
+  String encodeOverrides(
+    ModelSpec model, {
+    String? mmapDir,
+    bool? useMmapOverride,
+  }) {
     final overrides = <String, dynamic>{
       'backend_type': backend,
       'thread_num': threads,
@@ -303,9 +313,10 @@ class EngineSettings {
       'frequency_penalty': 0.0,
       'max_new_tokens': maxNewTokens,
     };
-    // 大模型默认用 mmap 加载权重，避免整块读入内存导致 OOM 闪退。
+    // 大模型优先用 mmap 加载权重，避免整块读入内存导致 OOM 闪退。
     // tmp_path 指向应用私有可写目录，MNN 用于放置 mmap 临时文件。
-    if (mmapDir != null && mmapDir.isNotEmpty) {
+    final mmap = useMmapOverride ?? useMmap;
+    if (mmap && mmapDir != null && mmapDir.isNotEmpty) {
       overrides['use_mmap'] = true;
       overrides['tmp_path'] = mmapDir;
     }

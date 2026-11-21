@@ -7,6 +7,8 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import java.io.File
 import ai.mnn.pocket.MnnLlmBridge
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -26,20 +28,46 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             SYSTEM_CHANNEL,
         ).setMethodCallHandler { call, result ->
-            if (call.method != "openUrl") {
-                result.notImplemented()
-                return@setMethodCallHandler
-            }
-            val url = call.argument<String>("url")
-            if (url == null || !url.startsWith("https://")) {
-                result.success(false)
-                return@setMethodCallHandler
-            }
-            try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                result.success(true)
-            } catch (_: Throwable) {
-                result.success(false)
+            when (call.method) {
+                "openUrl" -> {
+                    val url = call.argument<String>("url")
+                    if (url == null || !url.startsWith("https://")) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        result.success(true)
+                    } catch (_: Throwable) {
+                        result.success(false)
+                    }
+                }
+                "shareFile" -> {
+                    val path = call.argument<String>("path")
+                    val mime = call.argument<String>("mimeType") ?: "text/plain"
+                    if (path == null) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val file = File(path)
+                        val uri = FileProvider.getUriForFile(
+                            this,
+                            "$packageName.fileprovider",
+                            file,
+                        )
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = mime
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(Intent.createChooser(send, "分享调试日志"))
+                        result.success(true)
+                    } catch (_: Throwable) {
+                        result.success(false)
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
     }

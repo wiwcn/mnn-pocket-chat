@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models.dart';
 import '../../services/system_links.dart';
 import '../../state/app_store.dart';
+import '../debug/debug_view.dart';
 import '../models/models_view.dart';
 import '../widgets/model_icon.dart';
 import '../widgets/common.dart';
@@ -27,6 +28,7 @@ class _SettingsViewState extends State<SettingsView> {
   late int _topK = widget.store.settings.topK.clamp(1, 100).toInt();
   late int _threads = widget.store.settings.threads.clamp(1, 8).toInt();
   late String _backend = widget.store.settings.backend;
+  late bool _useMmap = widget.store.settings.useMmap;
 
   Future<void> _open(String url) async {
     await SystemLinks.openUrl(url);
@@ -162,6 +164,19 @@ class _SettingsViewState extends State<SettingsView> {
     _persist();
   }
 
+  Future<void> _toggleMmap(bool value) async {
+    setState(() => _useMmap = value);
+    await widget.store.setUseMmap(value);
+  }
+
+  void _openDebug() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DebugView(store: widget.store),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
@@ -238,6 +253,16 @@ class _SettingsViewState extends State<SettingsView> {
                               ),
                             ),
                             trailing: const SettingChevron(),
+                          ),
+                          SettingItem(
+                            title: '内存映射加载（mmap）',
+                            description: _useMmap
+                                ? '已开启 · 降低内存占用，推荐'
+                                : '已关闭 · 整块加载',
+                            trailing: Switch(
+                              value: _useMmap,
+                              onChanged: _toggleMmap,
+                            ),
                           ),
                         ],
                       ),
@@ -328,7 +353,13 @@ class _SettingsViewState extends State<SettingsView> {
                       SettingsSection(
                         title: '关于',
                         children: [
-                          const SettingItem(title: '版本', description: '1.0.0'),
+                          const SettingItem(title: '版本', description: '1.0.2'),
+                          SettingItem(
+                            title: '调试日志',
+                            description: '查看并导出运行日志，用于排查闪退',
+                            onTap: _openDebug,
+                            trailing: const SettingChevron(),
+                          ),
                           SettingItem(
                             title: 'GitHub',
                             description: 'github.com/wiwcn/pocket-chat',
