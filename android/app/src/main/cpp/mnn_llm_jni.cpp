@@ -1,4 +1,8 @@
 #include <jni.h>
+#include <android/log.h>
+
+#define MNN_POCKET_LOGI(...) __android_log_print(ANDROID_LOG_INFO, "mnn_pocket_native", __VA_ARGS__)
+#define MNN_POCKET_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "mnn_pocket_native", __VA_ARGS__)
 
 #include <algorithm>
 #include <atomic>
@@ -104,6 +108,7 @@ struct JavaCallback {
     jmethodID onToken = nullptr;
     jmethodID onDone = nullptr;
     jmethodID onError = nullptr;
+    jmethodID onStage = nullptr;
     bool valid = false;
 
     JNIEnv* env(bool& attached) {
@@ -157,6 +162,44 @@ struct JavaCallback {
         e->DeleteLocalRef(value);
         if (e->ExceptionCheck()) e->ExceptionClear();
         if (attached) g_vm->DetachCurrentThread();
+    }
+
+    // 阶段打点：把 native 执行进度回传到 Dart 的 debug.log，便于崩溃定位。
+    void emitStage(const std::string& stage) {
+        MNN_POCKET_LOGI("stage: %s", stage.c_str());
+        if (onStage == nullptr) return;
+        bool attached = false;
+        JNIEnv* e = env(attached);
+        if (e == nullptr) return;
+        jstring value = utf8ToJstring(e, stage);
+        e->CallVoidMethod(object, onStage, value);
+        e->DeleteLocalRef(value);
+        if (e->ExceptionCheck()) e->ExceptionClear();
+        if (attached) g_vm->DetachCurrentThread();
+    }
+
+    bool bind(JNIEnv* env, jobject callbackObject) {
+        // 必须用全局引用：MNN 的流式 token 回调可能来自内部线程，局部引用
+        // 跨线程使用是未定义行为，官方 MNN Chat 同样使用 NewGlobalRef。
+        object = env->NewGlobalRef(callbackObject);
+        jclass cls = env->GetObjectClass(callbackObject);
+        if (cls == nullptr) return false;
+        onToken = env->GetMethodID(cls, "onToken", "(Ljava/lang/String;)V");
+        onDone = env->GetMethodID(cls, "onDone", "(Ljava/lang/String;)V");
+        onError = env->GetMethodID(cls, "onError", "(Ljava/lang/String;)V");
+        onStage = env->GetMethodID(cls, "onStage", "(Ljava/lang/String;)V");
+        env->DeleteLocalRef(cls);
+        valid = onToken != nullptr && onDone != nullptr && onError != nullptr;
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        return valid;
+    }
+
+    void release(JNIEnv* env) {
+        if (object != nullptr) {
+            env->DeleteGlobalRef(object);
+            object = nullptr;
+        }
+        valid = false;
     }
 };
 
@@ -361,20 +404,12 @@ Java_ai_mnn_pocket_MnnLlmBridge_nativeGenerate(
         return;
     }
 
+    // 全局引用绑定：MNN 的流式回调可能来自内部线程，局部引用跨线程是未定义
+    // 行为，会导致 SIGSEGV 闪退。这是本次崩溃的核心修复（对齐官方 MNN Chat）。
     JavaCallback callback;
-    callback.object = callbackObject;
-    if (callbackObject != nullptr) {
-        jclass cls = env->GetObjectClass(callbackObject);
-        callback.onToken =
-            env->GetMethodID(cls, "onToken", "(Ljava/lang/String;)V");
-        callback.onDone =
-            env->GetMethodID(cls, "onDone", "(Ljava/lang/String;)V");
-        callback.onError =
-            env->GetMethodID(cls, "onError", "(Ljava/lang/String;)V");
-        callback.valid = callback.onToken != nullptr &&
-                         callback.onDone != nullptr &&
-                         callback.onError != nullptr;
-        env->DeleteLocalRef(cls);
+    if (!callback.bind(env, callbackObject)) {
+        MNN_POCKET_LOGE("nativeGenerate: failed to bind callback");
+        return;
     }
 
     ChatMessages history;
@@ -392,7 +427,7 @@ Java_ai_mnn_pocket_MnnLlmBridge_nativeGenerate(
 
     session->stop.store(false);
     StreamState state;
-    // 将 token 出口绑定到 Java 回调：此前 onToken 从未赋值，流式输出完全失效。
+    // 将 token 出口绑定到 Java 回调。
     state.onToken = [&callback](const std::string& text) {
         callback.emitToken(text);
     };
@@ -404,9 +439,13 @@ Java_ai_mnn_pocket_MnnLlmBridge_nativeGenerate(
         });
     std::ostream output(&streamBuffer);
 
+    callback.emitStage("native: enter generate, history=" +
+                       std::to_string(count));
     try {
         restoreRunning(session->llm);
+        callback.emitStage("native: prefill response begin");
         session->llm->response(history, &output, "<eop>", 0);
+        callback.emitStage("native: prefill response done");
         int currentSize = 0;
         bool textEnd = false;
         const int limit = maxTokens > 0 ? maxTokens : 512;
@@ -415,23 +454,37 @@ Java_ai_mnn_pocket_MnnLlmBridge_nativeGenerate(
         while (!session->stop.load() && !textEnd && currentSize < limit) {
             session->llm->generate(1);
             ++currentSize;
+            if (currentSize <= 2 || currentSize % 32 == 0) {
+                callback.emitStage("native: decoded " +
+                                   std::to_string(currentSize) + " tokens");
+            }
             resolveStepping(session->llm, state, currentSize, limit,
                             session->stop.load(), textEnd);
         }
         processor.flush();
         state.flushPending();
+        callback.emitStage("native: decode loop done, tokens=" +
+                           std::to_string(currentSize));
 
         const std::string assistant = state.buffer.str();
         if (!assistant.empty()) {
             history.emplace_back("assistant", assistant);
+            callback.emitStage("native: syncPromptCache begin");
             session->llm->syncPromptCache(history);
         }
+        callback.emitStage("native: emitDone");
         callback.emitDone(buildStats(session->llm->getContext()));
     } catch (const std::exception& e) {
+        MNN_POCKET_LOGE("nativeGenerate exception: %s", e.what());
+        callback.emitStage(std::string("native: exception ") + e.what());
         callback.emitError(e.what());
     } catch (...) {
+        MNN_POCKET_LOGE("nativeGenerate unknown exception");
+        callback.emitStage("native: unknown exception");
         callback.emitError("native generation failed");
     }
+    // 释放全局引用；必须在所有 emit 之后再删，避免回调 use-after-free。
+    callback.release(env);
 }
 
 extern "C" JNIEXPORT void JNICALL

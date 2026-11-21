@@ -177,6 +177,10 @@ class MnnLlmBridge(messenger: BinaryMessenger) :
         override fun onError(message: String) {
             emit(mapOf("type" to "error", "message" to message))
         }
+
+        override fun onStage(stage: String) {
+            emit(mapOf("type" to "stage", "message" to stage))
+        }
     }
 
     private fun emit(event: Map<String, Any?>) {
@@ -215,4 +219,5 @@ interface NativeCallback {
     fun onToken(text: String)
     fun onDone(statsJson: String)
     fun onError(message: String)
+    fun onStage(stage: String)
 }

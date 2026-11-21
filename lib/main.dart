@@ -50,7 +50,9 @@ class _AppBootstrapState extends State<AppBootstrap> {
     return ListenableBuilder(
       listenable: widget.store,
       builder: (context, _) {
-        if (widget.store.booting) return const SplashScreen();
+        if (widget.store.booting) {
+          return SplashScreen(seed: widget.store.themeSeed);
+        }
         return MnnPocketApp(store: widget.store);
       },
     );

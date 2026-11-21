@@ -521,6 +521,10 @@ class AppStore extends ChangeNotifier {
     }
 
     switch (event.type) {
+      case 'stage':
+        // native 阶段打点：直接落盘， assistance 崩溃时也能看到执行到哪一步。
+        debugLog.info('native', event.message ?? '');
+        break;
       case 'token':
         if (session == null || session.messages.isEmpty) return;
         if (session.messages.last.content.isEmpty) {
