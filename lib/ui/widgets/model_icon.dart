@@ -37,7 +37,7 @@ class ModelBrand {
       group: 'MNN',
       asset: 'assets/logos/mnn.png',
       pattern: RegExp(r'mnn|pocket|alibaba'),
-      scale: .84,
+      scale: .72,
     ),
     ModelBrand(
       group: 'Qwen',
