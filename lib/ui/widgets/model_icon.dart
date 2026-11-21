@@ -9,11 +9,13 @@ class ModelBrand {
     required this.group,
     required this.asset,
     required this.pattern,
+    this.scale = .6,
   });
 
   final String group;
   final String asset;
   final RegExp pattern;
+  final double scale;
 
   static ModelBrand? resolve({required String name, String vendor = ''}) {
     for (final candidate in [name, vendor]) {
@@ -35,6 +37,7 @@ class ModelBrand {
       group: 'MNN',
       asset: 'assets/logos/mnn.png',
       pattern: RegExp(r'mnn|pocket|alibaba'),
+      scale: .84,
     ),
     ModelBrand(
       group: 'Qwen',
@@ -107,7 +110,7 @@ class ModelIcon extends StatelessWidget {
       child: brand == null
           ? fallback
           : Padding(
-              padding: EdgeInsets.all(size * .2),
+              padding: EdgeInsets.all(size * (1 - brand.scale) / 2),
               child: Image.asset(
                 brand.asset,
                 fit: BoxFit.contain,
