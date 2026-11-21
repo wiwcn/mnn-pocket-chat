@@ -20,6 +20,8 @@
 #include <vector>
 #include <csignal>
 #include <ctime>
+#include <dlfcn.h>
+#include <exception>
 #include <unwind.h>
 
 #include "llm/llm.hpp"
@@ -90,9 +92,32 @@ static _Unwind_Reason_Code unwindCallback(struct _Unwind_Context* ctx, void* arg
     auto* uc = static_cast<UnwindContext*>(arg);
     if (uc->index >= 64) return _URC_END_OF_STACK;
     uintptr_t ip = _Unwind_GetIP(ctx);
-    char line[64];
-    int n = snprintf(line, sizeof(line), "  #%02d pc 0x%lx\n",
+    char line[512];
+    int n = 0;
+    Dl_info info{};
+    if (dladdr(reinterpret_cast<void*>(ip), &info) != 0 &&
+        info.dli_fname != nullptr) {
+        // so 名 + 模块内偏移，配合带符号 so 可直接 addr2line。
+        const char* base = info.dli_fname;
+        const char* slash = strrchr(base, '/');
+        if (slash != nullptr) base = slash + 1;
+        uintptr_t offset = ip - reinterpret_cast<uintptr_t>(info.dli_fbase);
+        if (info.dli_sname != nullptr) {
+            uintptr_t symoff = ip - reinterpret_cast<uintptr_t>(info.dli_saddr);
+            n = snprintf(line, sizeof(line),
+                         "  #%02d pc 0x%lx  %s+0x%lx  (%s+0x%lx)\n",
+                         uc->index, (unsigned long)ip, base,
+                         (unsigned long)offset, info.dli_sname,
+                         (unsigned long)symoff);
+        } else {
+            n = snprintf(line, sizeof(line), "  #%02d pc 0x%lx  %s+0x%lx\n",
+                         uc->index, (unsigned long)ip, base,
+                         (unsigned long)offset);
+        }
+    } else {
+        n = snprintf(line, sizeof(line), "  #%02d pc 0x%lx\n",
                      uc->index, (unsigned long)ip);
+    }
     if (n > 0 && uc->fd >= 0) {
         ssize_t ignored = ::write(uc->fd, line, (size_t)n);
         (void)ignored;
@@ -135,7 +160,46 @@ static void crashSignalHandler(int sig) {
     _exit(128 + sig);
 }
 
+// 未捕获的 C++ 异常会走 std::terminate → abort()，产生 SIGABRT。
+// 捕获它并打印异常类型/what，可直接定位本次崩溃根因。
+static void nativeTerminateHandler() {
+    char head[80];
+    int n = snprintf(head, sizeof(head), "\n===== C++ TERMINATE (uncaught exception) =====\n");
+    if (n > 0) traceWriteRaw(head);
+    try {
+        std::exception_ptr ep = std::current_exception();
+        if (ep) {
+            try {
+                std::rethrow_exception(ep);
+            } catch (const std::exception& e) {
+                char buf[512];
+                int m = snprintf(buf, sizeof(buf), "what(): %s\n", e.what());
+                if (m > 0) traceWriteRaw(buf);
+            } catch (...) {
+                traceWriteRaw("unknown exception (non-std)\n");
+            }
+        } else {
+            traceWriteRaw("terminate without current exception\n");
+        }
+    } catch (...) {
+        traceWriteRaw("failed to extract exception\n");
+    }
+    // 同样采集堆栈。
+    int fd = g_nativeTracePath.empty() ? -1 : ::open(
+        g_nativeTracePath.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    UnwindContext uc{fd, 0};
+    _Unwind_Backtrace(unwindCallback, &uc);
+    if (fd >= 0) {
+        ::fsync(fd);
+        ::close(fd);
+    }
+    traceWriteRaw("===== END TERMINATE =====\n");
+    // 正常终止进程（abort 会再次触发 SIGABRT handler，但 g_crashHandled 已有保护）。
+    std::abort();
+}
+
 static void installCrashHandlers() {
+    std::set_terminate(nativeTerminateHandler);
     signal(SIGSEGV, crashSignalHandler);
     signal(SIGABRT, crashSignalHandler);
     signal(SIGBUS, crashSignalHandler);
@@ -534,18 +598,22 @@ extern "C" JNIEXPORT void JNICALL
 Java_ai_mnn_pocket_MnnLlmBridge_nativeGenerate(
     JNIEnv* env, jobject /*thiz*/, jlong handle, jobjectArray roles,
     jobjectArray contents, jint maxTokens, jobject callbackObject) {
+    traceStage("nativeGenerate: CALLED (entry)");
     auto* session = reinterpret_cast<Session*>(handle);
     if (session == nullptr || session->llm == nullptr) {
+        traceStage("nativeGenerate: null session -> return");
         return;
     }
+    traceStage("nativeGenerate: session OK");
 
-    // 全局引用绑定：MNN 的流式回调可能来自内部线程，局部引用跨线程是未定义
-    // 行为，会导致 SIGSEGV 闪退。这是本次崩溃的核心修复（对齐官方 MNN Chat）。
+    // 全局引用绑定：对齐官方 MNN Chat 的做法。
     JavaCallback callback;
     if (!callback.bind(env, callbackObject)) {
+        traceStage("nativeGenerate: bind callback FAILED -> return");
         MNN_POCKET_LOGE("nativeGenerate: failed to bind callback");
         return;
     }
+    traceStage("nativeGenerate: callback bound");
 
     ChatMessages history;
     const jsize count = env->GetArrayLength(roles);
