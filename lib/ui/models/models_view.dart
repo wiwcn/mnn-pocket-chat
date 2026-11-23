@@ -6,6 +6,27 @@ import '../../state/app_store.dart';
 import '../chat/chat_view.dart';
 import '../widgets/model_icon.dart';
 
+// 标签按语义分组固定顺序展示：推荐 → 能力 → 规模 → 语言 → 特性，
+// 避免筛选栏/卡片按 catalog 出现顺序平铺导致顺序杂乱。
+const List<String> _tagOrder = [
+  '推荐',
+  '思考', '多模态', '代码', '数学', '音频',
+  '超小', '小', '中', '大',
+  '中文', '中英', 'English',
+  '极速', '稳定', '轻量', '高密度', '安全', '新', '实验',
+];
+
+/// 卡片上优先展示能力/规模标签，状态类（推荐/实验/新）后置。
+List<String> _displayTags(ModelSpec m) {
+  final tags = List<String>.from(m.tags);
+  tags.sort((a, b) {
+    final ai = _tagOrder.indexOf(a);
+    final bi = _tagOrder.indexOf(b);
+    return (ai < 0 ? 99 : ai).compareTo(bi < 0 ? 99 : bi);
+  });
+  return tags;
+}
+
 class ModelsView extends StatefulWidget {
   const ModelsView({super.key, required this.store});
 
@@ -33,14 +54,45 @@ class _ModelsViewState extends State<ModelsView> {
   }
 
   List<String> _filters() {
-    final filters = <String>[_all, _installedFilter, _recommended];
+    final present = <String>{};
     for (final model in store.catalog) {
-      for (final tag in model.tags) {
-        if (tag == _recommended) continue;
-        if (!filters.contains(tag)) filters.add(tag);
-      }
+      present.addAll(model.tags);
+    }
+    final filters = <String>[_all, _installedFilter];
+    for (final tag in _tagOrder) {
+      if (present.contains(tag)) filters.add(tag);
+    }
+    // 兜底：目录里出现了未登记的新标签也别丢掉。
+    for (final tag in present) {
+      if (tag == _recommended || filters.contains(tag)) continue;
+      filters.add(tag);
     }
     return filters;
+  }
+
+  /// 主流厂商排在前面，其余按名称字母序。
+  static const List<String> _vendorOrder = [
+    'Qwen', 'Gemma', 'DeepSeek', 'MiniCPM', 'Llama', 'Mistral',
+    'Hunyuan', 'THUDM', 'OpenBMB', 'Meta', 'Alibaba MNN',
+  ];
+
+  int _vendorRank(String vendor) {
+    final i = _vendorOrder.indexOf(vendor);
+    return i >= 0 ? i : _vendorOrder.length;
+  }
+
+  /// 从模型 id 提取「系列」键，让 Qwen3 / Qwen2.5 / Gemma4 等
+  /// 同系列变种在列表里聚在一起，而不是被参数量拆散。
+  String _seriesKey(ModelSpec m) {
+    var s = m.id.toLowerCase();
+    s = s.replaceAll(RegExp(r'\d+(\.\d+)?\s*[bm]'), ' '); // 去掉 0.5b/360m/e2b
+    for (final suffix in [
+      '-instruct', '-thinking', '-pt', '-it', '-chat', '-mnn',
+      '-gguf', '-preview', '-2507', '-a3b',
+    ]) {
+      s = s.replaceAll(suffix, '');
+    }
+    return s.replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
   bool _matches(ModelSpec model) {
@@ -72,7 +124,16 @@ class _ModelsViewState extends State<ModelsView> {
       final installedB = store.isInstalled(b.id) ? 0 : 1;
       if (installedA != installedB) return installedA - installedB;
       if (a.recommended != b.recommended) return a.recommended ? -1 : 1;
-      return a.paramsB.compareTo(b.paramsB);
+      // 按厂商 → 型号系列 → 参数规模排序，让同系列变种聚拢在一起。
+      final vendorCmp = _vendorRank(a.vendor).compareTo(_vendorRank(b.vendor));
+      if (vendorCmp != 0) return vendorCmp;
+      final vendorName = a.vendor.toLowerCase().compareTo(b.vendor.toLowerCase());
+      if (vendorName != 0) return vendorName;
+      final seriesCmp = _seriesKey(a).compareTo(_seriesKey(b));
+      if (seriesCmp != 0) return seriesCmp;
+      final paramCmp = a.paramsB.compareTo(b.paramsB);
+      if (paramCmp != 0) return paramCmp;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
     return models;
   }
@@ -561,7 +622,7 @@ class _ModelItem extends StatelessWidget {
                                 style: text.titleMedium,
                               ),
                             ),
-                            for (final tag in model.tags.take(2)) ...[
+                            for (final tag in _displayTags(model).take(2)) ...[
                               const SizedBox(width: 6),
                               Flexible(
                                 flex: 2,

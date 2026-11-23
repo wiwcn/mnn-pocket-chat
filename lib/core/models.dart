@@ -250,6 +250,8 @@ class EngineSettings {
     this.useMmap = true,
     this.repetitionPenalty = 1.05,
     this.ngramFactor = 1.1,
+    this.enableThinking = true,
+    this.thinkingBudget = 0,
     this.systemPrompt =
         'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
   });
@@ -268,6 +270,10 @@ class EngineSettings {
   double repetitionPenalty;
   /// n-gram 惩罚因子：>1 时对连续重复的 n 元组降权，专门防「一长串相同字符」。
   double ngramFactor;
+  /// 深度思考模型是否输出 `<think>` 思考过程（enable_thinking）。
+  bool enableThinking;
+  /// 思考预算（thinking_budget，单位 token）。0 表示不限制/交给模型默认。
+  int thinkingBudget;
   String systemPrompt;
 
   Map<String, dynamic> toJson() => {
@@ -281,6 +287,8 @@ class EngineSettings {
         'useMmap': useMmap,
         'repetitionPenalty': repetitionPenalty,
         'ngramFactor': ngramFactor,
+        'enableThinking': enableThinking,
+        'thinkingBudget': thinkingBudget,
         'systemPrompt': systemPrompt,
       };
 
@@ -297,6 +305,8 @@ class EngineSettings {
       repetitionPenalty:
           (json['repetitionPenalty'] as num?)?.toDouble() ?? 1.05,
       ngramFactor: (json['ngramFactor'] as num?)?.toDouble() ?? 1.1,
+      enableThinking: json['enableThinking'] as bool? ?? true,
+      thinkingBudget: (json['thinkingBudget'] as num?)?.toInt() ?? 0,
       systemPrompt: json['systemPrompt'] as String? ??
           'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
     );
@@ -329,6 +339,12 @@ class EngineSettings {
       'n_gram': 8,
       'ngram_factor': ngramFactor,
       'max_new_tokens': maxNewTokens,
+      // 深度思考模型（Qwen3 / R1 等）：enable_thinking 控制是否走 <think>
+      // 分支，thinking_budget 限制思考 token 数（0 交给模型默认）。
+      // 非思考模型会忽略这些键，无副作用。
+      'enable_thinking': enableThinking,
+      if (enableThinking && thinkingBudget > 0)
+        'thinking_budget': thinkingBudget,
     };
     // 大模型优先用 mmap 加载权重，避免整块读入内存导致 OOM 闪退。
     // tmp_path 指向应用私有可写目录，MNN 用于放置 mmap 临时文件。

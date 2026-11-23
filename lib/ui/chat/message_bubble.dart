@@ -226,7 +226,11 @@ class _ThinkingSectionState extends State<_ThinkingSection> {
   @override
   void didUpdateWidget(covariant _ThinkingSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.open && !oldWidget.open) _open = true;
+    // 双向同步：流式思考时自动展开，生成结束后自动折叠回默认收起状态，
+    // 避免思考内容一直摊开占据消息区。
+    if (widget.open != oldWidget.open) {
+      setState(() => _open = widget.open);
+    }
   }
 
   @override
@@ -389,14 +393,15 @@ Widget _richChunk(String raw, TextStyle? style) {
 ({String thinking, String answer}) splitThinking(String raw) {
   const open = '\u003cthink\u003e';
   const close = '\u003c/think\u003e';
-  const altOpen = '\u003cthinking\u003e';
-  const altClose = '\u003c/thinking\u003e';
 
   String? thinking;
   String answer = raw;
+  // 不同深度思考模型用不同标记包裹推理过程，逐一识别以便统一折叠。
   for (final pair in [
     (open, close),
-    (altOpen, altClose),
+    ('\u003cthinking\u003e', '\u003c/thinking\u003e'),
+    ('\u003cthought\u003e', '\u003c/thought\u003e'),
+    ('\u003creasoning\u003e', '\u003c/reasoning\u003e'),
   ]) {
     final start = raw.indexOf(pair.$1);
     if (start >= 0) {

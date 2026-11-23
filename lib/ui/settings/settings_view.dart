@@ -29,6 +29,9 @@ class _SettingsViewState extends State<SettingsView> {
   late int _threads = widget.store.settings.threads.clamp(1, 8).toInt();
   late String _backend = widget.store.settings.backend;
   late bool _useMmap = widget.store.settings.useMmap;
+  late bool _enableThinking = widget.store.settings.enableThinking;
+  late int _thinkingBudget = widget.store.settings.thinkingBudget.clamp(0, 8192);
+  late String _systemPrompt = widget.store.settings.systemPrompt;
 
   Future<void> _open(String url) async {
     await SystemLinks.openUrl(url);
@@ -42,7 +45,10 @@ class _SettingsViewState extends State<SettingsView> {
       ..topP = _topP
       ..topK = _topK
       ..threads = _threads
-      ..backend = _backend;
+      ..backend = _backend
+      ..enableThinking = _enableThinking
+      ..thinkingBudget = _thinkingBudget
+      ..systemPrompt = _systemPrompt;
     widget.store.updateSettings(settings);
   }
 
@@ -164,6 +170,83 @@ class _SettingsViewState extends State<SettingsView> {
     _persist();
   }
 
+  Future<void> _editSystemPrompt() async {
+    final controller = TextEditingController(text: _systemPrompt);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('系统提示词'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: TextField(
+            controller: controller,
+            maxLines: 8,
+            minLines: 4,
+            decoration: const InputDecoration(
+              hintText: '给模型的角色设定与行为约束',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    setState(() => _systemPrompt = result);
+    _persist();
+  }
+
+  Future<void> _editThinkingBudget() async {
+    var budget = _thinkingBudget;
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('思考强度'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(budget == 0
+                  ? '不限制（由模型自行决定思考长度）'
+                  : '约 $budget tokens'),
+              Slider(
+                value: budget.toDouble(),
+                min: 0,
+                max: 8192,
+                divisions: 16,
+                onChanged: (value) =>
+                    setDialogState(() => budget = value.round()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, budget),
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null) return;
+    setState(() => _thinkingBudget = result);
+    _persist();
+  }
+
   Future<void> _toggleMmap(bool value) async {
     setState(() => _useMmap = value);
     await widget.store.setUseMmap(value);
@@ -270,6 +353,36 @@ class _SettingsViewState extends State<SettingsView> {
                       SettingsSection(
                         title: '生成',
                         children: [
+                          SettingItem(
+                            title: '系统提示词',
+                            description: _systemPrompt.length > 40
+                                ? '${_systemPrompt.substring(0, 40)}…'
+                                : _systemPrompt,
+                            onTap: _editSystemPrompt,
+                            trailing: const SettingChevron(),
+                          ),
+                          SettingItem(
+                            title: '深度思考',
+                            description: _enableThinking
+                                ? '已开启 · 思考模型输出推理过程'
+                                : '已关闭 · 直接给出答案',
+                            trailing: Switch(
+                              value: _enableThinking,
+                              onChanged: (value) {
+                                setState(() => _enableThinking = value);
+                                _persist();
+                              },
+                            ),
+                          ),
+                          if (_enableThinking)
+                            SettingItem(
+                              title: '思考强度',
+                              description: _thinkingBudget == 0
+                                  ? '不限制 · 由模型自行决定'
+                                  : '约 $_thinkingBudget tokens',
+                              onTap: _editThinkingBudget,
+                              trailing: const SettingChevron(),
+                            ),
                           _SliderSetting(
                             title: '最大输出',
                             value: '$_maxTokens tokens',

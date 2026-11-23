@@ -308,6 +308,10 @@ class AppStore extends ChangeNotifier {
     return p.join(dir, 'config.json');
   }
 
+  /// 把 model id 转成安全的目录名（mmap 临时目录用）。
+  String _safeDirName(String id) =>
+      id.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+
   Future<bool> loadModel(ModelSpec spec) async {
     if (!installed.contains(spec.id)) return false;
     if (activeModel?.id == spec.id && modelReady) return true;
@@ -326,8 +330,18 @@ class AppStore extends ChangeNotifier {
       if (settings.useMmap) {
         try {
           final root = await _store.modelsDir();
-          mmapDir = p.join(root.path, '.mmap');
-          await Directory(mmapDir).create(recursive: true);
+          // 每个模型必须用独立的 mmap 临时目录，并在加载前清空。
+          // MNN 在 use_mmap 模式下会把权重分片/转换缓存写进 tmp_path，
+          // 若多个模型共用同一个 .mmap，缓存文件名可能重名或残留旧版本
+          // 文件，导致加载时权重错位 —— 表现就是部分模型（qwen3.5-0.8b、
+          // minicpm4 等）重复吐出同一个字符，且只在开启 mmap 后出现。
+          mmapDir = p.join(root.path, '.mmap', _safeDirName(spec.id));
+          final dir = Directory(mmapDir);
+          if (await dir.exists()) {
+            await dir.delete(recursive: true);
+          }
+          await dir.create(recursive: true);
+          debugLog.info('model', 'mmap dir reset: $mmapDir');
         } catch (_) {
           mmapDir = null;
         }

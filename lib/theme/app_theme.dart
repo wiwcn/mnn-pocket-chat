@@ -130,11 +130,17 @@ class AppTheme {
         scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: scheme.onSurface),
       ),
+      // 提示条跟随明暗主题：浅色用浅灰、深色用深灰，避免深色模式下弹出
+      // 突兀的反色白条（此前用 inverseSurface，深/浅主题下都反色，观感上
+      // 像“没适配深色模式”）。
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: scheme.inverseSurface,
+        backgroundColor: scheme.surfaceContainerHigh,
         contentTextStyle: base.textTheme.bodyMedium?.copyWith(
-          color: scheme.onInverseSurface,
+          color: scheme.onSurface,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       dialogTheme: DialogThemeData(
