@@ -156,6 +156,22 @@ class AppStore extends ChangeNotifier {
     settings = next;
     await _store.saveSettings(next);
     notifyListeners();
+    // 思考配置若已变更，模型已就绪时必须通过 set_config 实时下发。
+    // 此前只在 load 时写入 overrides，运行中改动永远不生效——这就是
+    // "思考与否/强度无法控制"的根因。set_config 本身很轻量，这里无条件
+    // 下发（无模型时是空操作），避免可变对象引用导致的新旧值比较失真。
+    if (modelReady) {
+      await applyThinking();
+    }
+  }
+
+  /// 把当前思考开关通过 MNN set_config 实时下发到已加载的模型。
+  /// 无模型加载时是安全的空操作（Dart 侧直接返回）。
+  Future<bool> applyThinking() async {
+    if (!modelReady) return false;
+    final ok = await engine.setConfig(settings.thinkingConfigOverrides());
+    debugLog.info('model', 'applyThinking: enable=${settings.enableThinking}, ok=$ok');
+    return ok;
   }
 
   /// 更新 mmap 开关。已加载模型时先释放，下次加载按新设置生效。
@@ -374,6 +390,9 @@ class AppStore extends ChangeNotifier {
       }
       activeModel = spec;
       modelReady = true;
+      // load 完成后再显式下发一次思考开关，确保运行中改动与模型状态一致
+      // （overrides 已包含 jinja.context，这一步兜底 set_config 路径）。
+      await applyThinking();
       loadHint = '${spec.name} 已就绪';
       _loadHintTimer?.cancel();
       _loadHintTimer = Timer(const Duration(seconds: 3), () {
@@ -499,7 +518,7 @@ class AppStore extends ChangeNotifier {
     try {
       await engine.generate(
         history: recent,
-        systemPrompt: settings.systemPrompt,
+        systemPrompt: settings.systemPromptWithThinking(),
         maxTokens: settings.maxNewTokens,
       );
     } catch (e) {
@@ -547,7 +566,8 @@ class AppStore extends ChangeNotifier {
       case 'token':
         if (session == null || session.messages.isEmpty) return;
         if (session.messages.last.content.isEmpty) {
-          debugLog.info('chat', 'first token received');
+          final t = event.text ?? '';
+          debugLog.info('chat', 'first token received: ${_preview(t)}');
         }
         if (_repetitionStopped) return; // 已因退化停止，忽略后续残留 token
         session.messages.last.content += event.text ?? '';
@@ -564,6 +584,14 @@ class AppStore extends ChangeNotifier {
       case 'done':
         debugLog.info('chat',
             'generate done: output=${event.stats?.outputTokens ?? 0}, elapsed=${event.stats?.elapsedMs ?? 0}ms');
+        // 实测 think 闭合：记录原始输出是否包含 open/close 标签及长度，
+        // 便于判断部分模型是否输出不完整闭合导致思考内容外泄到正文。
+        if (session != null && session.messages.isNotEmpty) {
+          final raw = session.messages.last.content;
+          debugLog.info('chat',
+              'think-audit: len=${raw.length} open=${raw.contains("\u003cthink\u003e")} '
+              'close=${raw.contains("\u003c/think\u003e")} head=${_preview(raw, 60)} tail=${_previewTail(raw, 60)}');
+        }
         _finishStreaming(stats: event.stats);
         if (session != null && session.messages.isNotEmpty) {
           session.messages.last.stats = event.stats;
@@ -586,6 +614,17 @@ class AppStore extends ChangeNotifier {
         notifyListeners();
         break;
     }
+  }
+
+  /// 日志预览：把换行转成可见转义，避免污染单行日志；限制长度。
+  String _preview(String text, [int max = 40]) {
+    final flat = text.replaceAll('\n', '\\n').replaceAll('\r', '\\r');
+    return flat.length <= max ? flat : '${flat.substring(0, max)}…';
+  }
+
+  String _previewTail(String text, [int max = 60]) {
+    final flat = text.replaceAll('\n', '\\n').replaceAll('\r', '\\r');
+    return flat.length <= max ? flat : '…${flat.substring(flat.length - max)}';
   }
 
   /// 检测文本尾部是否出现退化式重复：某个长度 1~12 的模式连续重复多次。

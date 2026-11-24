@@ -9,6 +9,7 @@ import '../../services/image_attachments.dart';
 import '../../state/app_store.dart';
 import '../widgets/model_icon.dart';
 import 'message_bubble.dart';
+import 'thinking_control.dart';
 
 class ChatView extends StatefulWidget {
   const ChatView({super.key, required this.store});
@@ -168,9 +169,13 @@ class _ChatViewState extends State<ChatView> {
                       await store.releaseModel();
                       break;
                     case 'delete':
+                      // 先弹栈再删除：若先 deleteSession，activeSession 被置空并
+                      // notifyListeners，本页在 pop 动画期间会用 session==null
+                      // 重建出空白 Scaffold，表现为「闪一下白屏再退出」。
+                      // 先 pop 让动画无中间态，再进行持久化删除。
+                      final navigator = Navigator.of(context);
+                      navigator.pop();
                       await store.deleteSession(session);
-                      if (!context.mounted) return;
-                      Navigator.of(context).maybePop();
                       break;
                   }
                 },
@@ -266,6 +271,8 @@ class _ChatViewState extends State<ChatView> {
                     onPickImage: _pickImage,
                     onClearImage: () => setState(() => _pendingImage = null),
                     onSend: _send,
+                    onConfigureThinking: () =>
+                        showThinkingSheet(context, store: store),
                   ),
                 ),
               ],
@@ -338,6 +345,7 @@ class _ChatInputBox extends StatelessWidget {
     required this.onPickImage,
     required this.onClearImage,
     required this.onSend,
+    required this.onConfigureThinking,
   });
 
   final AppStore store;
@@ -346,6 +354,7 @@ class _ChatInputBox extends StatelessWidget {
   final VoidCallback onPickImage;
   final VoidCallback onClearImage;
   final VoidCallback onSend;
+  final VoidCallback onConfigureThinking;
 
   @override
   Widget build(BuildContext context) {
@@ -379,8 +388,15 @@ class _ChatInputBox extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: ThinkingBadge(
+                      level: store.settings.thinkingLevel,
+                      onTap: onConfigureThinking,
+                    ),
+                  ),
                   if (store.activeModel?.vision == true)
                     IconButton(
                       tooltip: '添加图片',

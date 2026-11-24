@@ -69,15 +69,86 @@ class _WelcomeViewState extends State<WelcomeView>
 
   Future<void> _startNewChat() async {
     final store = widget.store;
-    final installed = store.catalog.where((m) => store.isInstalled(m.id));
+    final installed = store.catalog.where((m) => store.isInstalled(m.id)).toList();
     if (installed.isEmpty) {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => ModelsView(store: store)),
       );
       return;
     }
-    await store.startChat(installed.first);
+    ModelSpec? chosen;
+    if (installed.length == 1) {
+      // 只有一个已安装模型时无需选择，直接进入（对齐 gpt_mobile 行为）。
+      chosen = installed.first;
+    } else {
+      chosen = await _pickModel(installed);
+    }
+    if (chosen == null || !mounted) return;
+    await store.startChat(chosen);
     await _pushChat();
+  }
+
+  /// 新建对话时让用户在已安装模型里手动选择，而不是默认拿第一个。
+  Future<ModelSpec?> _pickModel(List<ModelSpec> installed) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return showModalBottomSheet<ModelSpec?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: scheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('选择模型', style: text.titleLarge),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(sheetContext).size.height * 0.6,
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: installed.length,
+                itemBuilder: (context, index) {
+                  final model = installed[index];
+                  return ListTile(
+                    leading: ModelIcon(name: model.name, vendor: model.vendor),
+                    title: Text(model.name, maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    subtitle: Text(
+                      '${model.paramsLabel} · ${model.contextLabel}',
+                      maxLines: 1,
+                    ),
+                    onTap: () => Navigator.of(sheetContext).pop(model),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _openSession(ChatSession session) async {

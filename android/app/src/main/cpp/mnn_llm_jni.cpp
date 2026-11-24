@@ -734,6 +734,36 @@ Java_ai_mnn_pocket_MnnLlmBridge_nativeReset(JNIEnv*, jobject, jlong handle) {
     }
 }
 
+extern "C" JNIEXPORT jboolean JNICALL
+Java_ai_mnn_pocket_MnnLlmBridge_nativeSetConfig(JNIEnv* env, jobject /*thiz*/,
+                                                jlong handle, jstring configJson) {
+    auto* session = reinterpret_cast<Session*>(handle);
+    if (session == nullptr || session->llm == nullptr || configJson == nullptr) {
+        traceStage("nativeSetConfig: null session/config -> return false");
+        return JNI_FALSE;
+    }
+    const std::string config = jstringToUtf8(env, configJson);
+    if (config.empty()) {
+        traceStage("nativeSetConfig: empty config -> return false");
+        return JNI_FALSE;
+    }
+    traceStage((std::string("nativeSetConfig: ") + config).c_str());
+    try {
+        // 与官方 MNN Chat 的 updateConfig 一致：直接调用 set_config。
+        // MNN 内部会把片段 merge 进已有 config，并重建 chat template，
+        // 因此 jinja.context.enable_thinking 可在不重新 load 模型的情况下实时生效。
+        const bool ok = session->llm->set_config(config);
+        traceStage(ok ? "nativeSetConfig: OK" : "nativeSetConfig: set_config returned false");
+        return ok ? JNI_TRUE : JNI_FALSE;
+    } catch (const std::exception& e) {
+        traceStage((std::string("nativeSetConfig: exception ") + e.what()).c_str());
+        return JNI_FALSE;
+    } catch (...) {
+        traceStage("nativeSetConfig: unknown exception");
+        return JNI_FALSE;
+    }
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_ai_mnn_pocket_MnnLlmBridge_nativeRelease(JNIEnv*, jobject, jlong handle) {
     auto* session = reinterpret_cast<Session*>(handle);

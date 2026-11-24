@@ -123,6 +123,28 @@ class MnnLlmBridge(messenger: BinaryMessenger, logDir: String? = null) :
                 }
             }
 
+            "setConfig" -> {
+                // 运行时下发配置片段（如 jinja.context.enable_thinking 思考开关）。
+                // 必须在 worker 串行队列里执行：set_config 会重建 chat template
+                // 并触碰底层 Llm，若与正在进行的 generate/release 并发会崩溃。
+                val config = call.argument<String>("config")
+                if (config == null) {
+                    result.error("bad_args", "config is required", null)
+                    return
+                }
+                worker.execute {
+                    val current = synchronized(handleLock) { handle }
+                    var ok = false
+                    if (current != 0L) {
+                        try {
+                            ok = nativeSetConfig(current, config)
+                        } catch (_: Throwable) {
+                        }
+                    }
+                    mainHandler.post { result.success(ok) }
+                }
+            }
+
             "stop" -> {
                 // stop 只设置 native 侧的原子标志、不释放对象，必须即时调用
                 // （若排进 worker 会落在生成之后而失去意义）。用 handleLock
@@ -215,6 +237,7 @@ class MnnLlmBridge(messenger: BinaryMessenger, logDir: String? = null) :
     private external fun nativeSetLogPath(path: String)
 
     private external fun nativeCreate(configPath: String, overridesJson: String): Long
+    private external fun nativeSetConfig(handle: Long, configJson: String): Boolean
     private external fun nativeGenerate(
         handle: Long,
         roles: Array<String>,

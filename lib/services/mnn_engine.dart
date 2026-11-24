@@ -61,6 +61,16 @@ class MnnEngine {
     });
   }
 
+  /// 运行时下发配置片段（例如 jinja.context.enable_thinking 思考开关）。
+  /// MNN 通过 set_config 增量 merge 并重建 chat template，无需重新加载模型。
+  Future<bool> setConfig(Map<String, dynamic> config) async {
+    await _ready.future;
+    final ok = await _methods.invokeMethod<bool>('setConfig', {
+      'config': jsonEncode(config),
+    });
+    return ok ?? false;
+  }
+
   Future<void> stop() async {
     await _methods.invokeMethod<void>('stop');
   }

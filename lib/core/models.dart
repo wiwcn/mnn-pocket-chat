@@ -312,6 +312,73 @@ class EngineSettings {
     );
   }
 
+  /// 生成 MNN 可识别的思考开关配置片段。
+  ///
+  /// MNN（含官方 MnnLlmChat / llm_demo）只认 `jinja.context.enable_thinking`
+  /// 这个布尔开关，并不存在 `thinking_budget` 字段：此前把
+  /// `enable_thinking` / `thinking_budget` 写在 overrides 顶层，引擎完全忽略，
+  /// 这正是"思考开关和强度始终无效"的根因。
+  ///
+  /// 返回的片段可直接用于 load 的 overrides，也可传给 `set_config` 实时生效。
+  /// [enable] 为 null 时表示不改变当前值（仅用于构造空片段，实际调用总会传值）。
+  Map<String, dynamic> thinkingConfigOverrides({bool? enable}) {
+    return {
+      'jinja': {
+        'context': {
+          'enable_thinking': enable ?? enableThinking,
+        },
+      },
+    };
+  }
+
+  /// 思考强度档位（0=关闭, 1=简洁, 2=标准, 3=深入）。
+  /// MNN 引擎本身只有 enable_thinking 开关、没有 thinking_budget 字段，
+  /// 因此强度通过「开关 + 注入到系统提示词里的思考详略约束」真实影响生成，
+  /// 而不是一个改了没反应的 no-op 滑块。
+  static const int thinkingLevelCount = 4;
+
+  int get thinkingLevel {
+    if (!enableThinking) return 0;
+    if (thinkingBudget <= 0) return 2;
+    if (thinkingBudget <= 1024) return 1;
+    if (thinkingBudget >= 4096) return 3;
+    return 2;
+  }
+
+  void setThinkingLevel(int level) {
+    final clamped = level.clamp(0, thinkingLevelCount - 1);
+    enableThinking = clamped > 0;
+    thinkingBudget = switch (clamped) {
+      0 => 0,      // 关闭
+      1 => 512,    // 简洁
+      2 => 2048,   // 标准
+      3 => 8192,   // 深入
+      _ => 2048,
+    };
+  }
+
+  static const List<String> thinkingLevelLabels = ['关闭', '简洁', '标准', '深入'];
+  static const List<String> thinkingLevelSubtitles = [
+    '直接回答，不输出推理过程',
+    '简要思考',
+    '平衡思考与速度',
+    '充分展开推理过程',
+  ];
+
+  /// 将思考强度附加到系统提示词后，作为对模型思考详略的自然语言约束。
+  /// 仅当思考开启且强度非「标准」时注入，避免干扰默认行为。
+  String systemPromptWithThinking() {
+    final base = systemPrompt.trim();
+    if (!enableThinking || thinkingBudget <= 0) return base;
+    final hint = thinkingBudget <= 1024
+        ? 'Keep your reasoning concise and brief.'
+        : thinkingBudget >= 4096
+            ? 'Think thoroughly and step by step before answering.'
+            : '';
+    if (hint.isEmpty) return base;
+    return base.isEmpty ? hint : '$base\n$hint';
+  }
+
   /// [useMmapOverride] 用于加载失败时临时回退到非 mmap 重试，不改写持久化设置。
   String encodeOverrides(
     ModelSpec model, {
@@ -339,13 +406,12 @@ class EngineSettings {
       'n_gram': 8,
       'ngram_factor': ngramFactor,
       'max_new_tokens': maxNewTokens,
-      // 深度思考模型（Qwen3 / R1 等）：enable_thinking 控制是否走 <think>
-      // 分支，thinking_budget 限制思考 token 数（0 交给模型默认）。
-      // 非思考模型会忽略这些键，无副作用。
-      'enable_thinking': enableThinking,
-      if (enableThinking && thinkingBudget > 0)
-        'thinking_budget': thinkingBudget,
     };
+    // 深度思考模型（Qwen3 等）的开关必须放在 jinja.context 里才会被 MNN
+    // 的 chat template 识别——顶层 enable_thinking 会被静默忽略。此处在
+    // load 时先写入一次think 开关，运行中改动由 AppStore.applyThinking 通过
+    // set_config 实时下发（见 thinkingConfigOverrides）。
+    overrides['jinja'] = thinkingConfigOverrides()['jinja'];
     // 大模型优先用 mmap 加载权重，避免整块读入内存导致 OOM 闪退。
     // tmp_path 指向应用私有可写目录，MNN 用于放置 mmap 临时文件。
     final mmap = useMmapOverride ?? useMmap;
