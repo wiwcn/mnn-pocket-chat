@@ -466,7 +466,7 @@ class _SettingsViewState extends State<SettingsView> {
                       SettingsSection(
                         title: '关于',
                         children: [
-                          const SettingItem(title: '版本', description: '1.3.0'),
+                          const SettingItem(title: '版本', description: '1.4.0'),
                           SettingItem(
                             title: '调试日志',
                             description: '查看并导出运行日志，用于排查闪退',

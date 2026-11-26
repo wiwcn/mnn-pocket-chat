@@ -145,7 +145,11 @@ class _AssistantMessage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (thinking.isNotEmpty)
-            _ThinkingSection(thinking: thinking, open: streaming && answer.isEmpty),
+            _ThinkingSection(
+              key: ValueKey('think_${message.createdAt.microsecondsSinceEpoch}'),
+              thinking: thinking,
+              autoExpand: streaming && answer.isEmpty,
+            ),
           Container(
             width: double.infinity,
             color: scheme.surface,
@@ -211,25 +215,30 @@ class _AssistantMessage extends StatelessWidget {
 }
 
 class _ThinkingSection extends StatefulWidget {
-  const _ThinkingSection({required this.thinking, required this.open});
+  const _ThinkingSection({super.key, required this.thinking, required this.autoExpand});
 
   final String thinking;
-  final bool open;
+  /// 流式思考阶段（尚无正文）自动展开；生成结束后自动收起。
+  /// 用户手动切换后不再受此字段影响。
+  final bool autoExpand;
 
   @override
   State<_ThinkingSection> createState() => _ThinkingSectionState();
 }
 
 class _ThinkingSectionState extends State<_ThinkingSection> {
-  late bool _open = widget.open;
+  late bool _open = widget.autoExpand;
+  /// 用户是否手动切换过。一旦手动操作，就尊重用户选择，
+  /// 后续流式 rebuild 不再用 autoExpand 覆盖回去——这正是
+  /// 之前「点折叠没用」的根因。
+  bool _userToggled = false;
 
   @override
   void didUpdateWidget(covariant _ThinkingSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 双向同步：流式思考时自动展开，生成结束后自动折叠回默认收起状态，
-    // 避免思考内容一直摊开占据消息区。
-    if (widget.open != oldWidget.open) {
-      setState(() => _open = widget.open);
+    if (_userToggled) return;
+    if (widget.autoExpand != oldWidget.autoExpand) {
+      setState(() => _open = widget.autoExpand);
     }
   }
 
@@ -237,38 +246,57 @@ class _ThinkingSectionState extends State<_ThinkingSection> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final count = widget.thinking.length;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(32),
-            onTap: () => setState(() => _open = !_open),
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setState(() {
+              _userToggled = true;
+              _open = !_open;
+            }),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Icon(
+                    Icons.psychology_outlined,
+                    size: 18,
+                    color: scheme.primary,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
-                    '详情',
+                    _open ? '收起思考' : '深度思考 · $count 字',
                     style: text.labelLarge?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Icon(
                     _open ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                     size: 20,
-                    color: scheme.onSurfaceVariant,
+                    color: scheme.primary,
                   ),
                 ],
               ),
             ),
           ),
           if (_open)
-            Padding(
-              padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
+            Container(
+              margin: const EdgeInsets.only(top: 4, left: 4, right: 4),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: scheme.primary.withValues(alpha: 0.18),
+                ),
+              ),
               child: SelectableText(
                 widget.thinking,
                 style: text.bodyMedium?.copyWith(
@@ -391,31 +419,43 @@ Widget _richChunk(String raw, TextStyle? style) {
 }
 
 ({String thinking, String answer}) splitThinking(String raw) {
-  const open = '\u003cthink\u003e';
-  const close = '\u003c/think\u003e';
-
-  String? thinking;
-  String answer = raw;
-  // 不同深度思考模型用不同标记包裹推理过程，逐一识别以便统一折叠。
-  for (final pair in [
-    (open, close),
-    ('\u003cthinking\u003e', '\u003c/thinking\u003e'),
-    ('\u003cthought\u003e', '\u003c/thought\u003e'),
-    ('\u003creasoning\u003e', '\u003c/reasoning\u003e'),
-  ]) {
-    final start = raw.indexOf(pair.$1);
-    if (start >= 0) {
-      final end = raw.indexOf(pair.$2, start + pair.$1.length);
-      if (end >= 0) {
-        thinking = raw.substring(start + pair.$1.length, end);
-        answer = (raw.substring(0, start) + raw.substring(end + pair.$2.length))
-            .trim();
-      } else {
-        thinking = raw.substring(start + pair.$1.length);
-        answer = raw.substring(0, start).trim();
-      }
-      break;
+  // 深度思考模型的推理标记千差万别：Qwen3/DeepSeek-R1 用 <think>，
+  // 部分模型用 <thinking>/<thought>/<reasoning>，LFM2-Thinking 等用
+  // <|think|>，还有大小写变体。统一识别并折叠，避免推理过程直接暴露在正文。
+  // 深度思考模型常见的推理标记（开, 闭）。Dart 字符串字面量中的标签
+  // 不会被当作标记语言，直接书写即可。
+  final pairs = <(String, String)>[
+    ('<think>', '</think>'),
+    ('<thinking>', '</thinking>'),
+    ('<thought>', '</thought>'),
+    ('<reasoning>', '</reasoning>'),
+    ('<analysis>', '</analysis>'),
+    ('<|think|>', '<|/think|>'),       // LFM2-Thinking
+    ('<|reasoning|>', '<|/reasoning|>'),
+    ('【思考】', '【/思考】'),
+  ];
+  // 大小写不敏感匹配：把原文与标记都转小写查找位置，再用位置切原文。
+  final lower = raw.toLowerCase();
+  for (final pair in pairs) {
+    final openTag = pair.$1.toLowerCase();
+    final closeTag = pair.$2.toLowerCase();
+    final start = lower.indexOf(openTag);
+    if (start < 0) continue;
+    final bodyStart = start + openTag.length;
+    final end = lower.indexOf(closeTag, bodyStart);
+    final String thinking;
+    final String answer;
+    if (end >= 0) {
+      thinking = raw.substring(bodyStart, end);
+      answer =
+          (raw.substring(0, start) + raw.substring(end + closeTag.length)).trim();
+    } else {
+      // 未闭合：模型在 max_new_tokens 内没吐出结束标记，剩余全部当推理，
+      // 不做外泄——这样即使未闭合也能折叠，正是本次实测要确认的场景。
+      thinking = raw.substring(bodyStart);
+      answer = raw.substring(0, start).trim();
     }
+    return (thinking: thinking, answer: answer);
   }
-  return (thinking: thinking ?? '', answer: answer);
+  return (thinking: '', answer: raw);
 }

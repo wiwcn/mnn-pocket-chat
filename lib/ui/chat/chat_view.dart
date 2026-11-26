@@ -27,6 +27,10 @@ class _ChatViewState extends State<ChatView> {
   Timer? _ticker;
   DateTime? _startedAt;
   String? _pendingImage;
+  /// 删除当前会话时 activeSession 会被置空。pop 退出动画期间本页仍在树中，
+  /// 若此刻按 session==null 重建会出现「闪一下白屏」。缓存最后一帧会话，
+  /// 过渡期间继续用它渲染，直到页面真正离树。
+  ChatSession? _lastSession;
 
   @override
   void initState() {
@@ -103,14 +107,19 @@ class _ChatViewState extends State<ChatView> {
       builder: (context, _) {
         final store = widget.store;
         final session = store.activeSession;
+        // 记住最后一个有效会话，供删除时的 pop 过渡帧使用，避免中间白屏。
+        if (session != null) _lastSession = session;
+        final viewSession = session ?? _lastSession;
         final scheme = Theme.of(context).colorScheme;
         final text = Theme.of(context).textTheme;
-        final modelName = store.activeModel?.name ?? session?.modelName ?? '';
+        final modelName =
+            store.activeModel?.name ?? viewSession?.modelName ?? '';
         final modelVendor = store.activeModel?.vendor ??
-            store.specFor(session?.modelId ?? '')?.vendor ??
+            store.specFor(viewSession?.modelId ?? '')?.vendor ??
             '';
 
-        if (session == null) {
+        // 只有从没有过任何会话才显示空态；删除过渡帧用缓存会话继续渲染。
+        if (viewSession == null) {
           return Scaffold(
             backgroundColor: scheme.surface,
             appBar: AppBar(
@@ -140,7 +149,7 @@ class _ChatViewState extends State<ChatView> {
               icon: const Icon(Icons.arrow_back),
             ),
             title: Text(
-              session.title,
+              viewSession.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -175,7 +184,7 @@ class _ChatViewState extends State<ChatView> {
                       // 先 pop 让动画无中间态，再进行持久化删除。
                       final navigator = Navigator.of(context);
                       navigator.pop();
-                      await store.deleteSession(session);
+                      await store.deleteSession(viewSession);
                       break;
                   }
                 },
@@ -238,15 +247,15 @@ class _ChatViewState extends State<ChatView> {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
-                    itemCount: session.messages.length,
+                    itemCount: viewSession.messages.length,
                     itemBuilder: (context, index) {
-                      final message = session.messages[index];
+                      final message = viewSession.messages[index];
                       return _BubbleEntrance(
                         key: ObjectKey(message),
                         child: MessageBubble(
                           message: message,
                           streaming: store.generating &&
-                              index == session.messages.length - 1 &&
+                              index == viewSession.messages.length - 1 &&
                               message.role == ChatRole.assistant,
                         ),
                       );
@@ -258,9 +267,9 @@ class _ChatViewState extends State<ChatView> {
                     elapsed: _startedAt == null
                         ? Duration.zero
                         : DateTime.now().difference(_startedAt!),
-                    characters: session.messages.isEmpty
+                    characters: viewSession.messages.isEmpty
                         ? 0
-                        : session.messages.last.content.trim().length,
+                        : viewSession.messages.last.content.trim().length,
                   ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(0, 4, 0, 8),

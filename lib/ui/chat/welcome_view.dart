@@ -249,9 +249,10 @@ class _WelcomeViewState extends State<WelcomeView>
           body: sessions.isEmpty
               ? _EmptyChats(onStart: _startNewChat, searching: _searching)
               : ListView(
-                  padding: const EdgeInsets.only(bottom: 96),
+                  // AppBar 已有「对话」标题，列表不再重复大字标题；
+                  // 顶部留白补偿原 _ChatsTitle 的间距。
+                  padding: const EdgeInsets.only(top: 20, bottom: 96),
                   children: [
-                    if (!_searching) const _ChatsTitle(),
                     for (var i = 0; i < sessions.length; i++)
                       _SessionItem(
                         session: sessions[i],
@@ -268,21 +269,6 @@ class _WelcomeViewState extends State<WelcomeView>
                 ),
         );
       },
-    );
-  }
-}
-
-class _ChatsTitle extends StatelessWidget {
-  const _ChatsTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 32),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Text('对话', style: Theme.of(context).textTheme.headlineLarge),
-      ),
     );
   }
 }
