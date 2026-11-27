@@ -19,7 +19,8 @@
     "recommended": true,
     "temperature": 0.8,
     "topP": 0.8,
-    "topK": 20
+    "topK": 20,
+    "contextSource": "approx"
   },
   {
     "id": "Qwen3-0.6B-MNN",
@@ -27,7 +28,7 @@
     "vendor": "Qwen",
     "paramsB": 0.6,
     "sizeBytes": 454473462,
-    "contextLength": 32768,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "Qwen3 系列最小尺寸，支持思考模式开关，中文能力在同尺寸中突出。",
     "tags": [
@@ -40,7 +41,8 @@
     "recommended": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "Qwen2.5-0.5B-Instruct-MNN",
@@ -61,7 +63,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "MiniCPM4-0.5B-MNN",
@@ -82,7 +85,8 @@
     "recommended": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "Hunyuan-0.5B-Instruct-MNN",
@@ -90,7 +94,7 @@
     "vendor": "Tencent",
     "paramsB": 0.5,
     "sizeBytes": 401753427,
-    "contextLength": 32768,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "腾讯混元 0.5B 指令模型，支持混合思考模式，中文对话自然。",
     "tags": [
@@ -103,7 +107,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "ERNIE-4.5-0.3B-PT-MNN",
@@ -111,7 +116,7 @@
     "vendor": "Baidu",
     "paramsB": 0.3,
     "sizeBytes": 281543451,
-    "contextLength": 32768,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "百度文心 0.3B 预训练底座，适合作为垂类微调的端侧起点。",
     "tags": [
@@ -124,7 +129,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "SmolLM2-360M-Instruct-MNN",
@@ -145,7 +151,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "SmolLM2-135M-Instruct-MNN",
@@ -166,7 +173,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "smolvlm-256m",
@@ -189,7 +197,8 @@
     "temperature": 0.7,
     "topP": 0.9,
     "topK": 40,
-    "vision": true
+    "vision": true,
+    "contextSource": "approx"
   },
   {
     "id": "MobileLLM-125M-MNN",
@@ -197,7 +206,7 @@
     "vendor": "Meta",
     "paramsB": 0.125,
     "sizeBytes": 119783520,
-    "contextLength": 4096,
+    "contextLength": 2048,
     "quant": "INT4",
     "description": "Meta 面向移动端设计的极小模型，占用仅 120MB，适合功能型任务。",
     "tags": [
@@ -210,7 +219,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "MobileLLM-350M-MNN",
@@ -218,7 +228,7 @@
     "vendor": "Meta",
     "paramsB": 0.35,
     "sizeBytes": 282675592,
-    "contextLength": 4096,
+    "contextLength": 2048,
     "quant": "INT4",
     "description": "MobileLLM 350M，英文对话质量优于 125M，体积仍然很小。",
     "tags": [
@@ -231,7 +241,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "MobileLLM-600M-MNN",
@@ -239,7 +250,7 @@
     "vendor": "Meta",
     "paramsB": 0.6,
     "sizeBytes": 420065443,
-    "contextLength": 4096,
+    "contextLength": 2048,
     "quant": "INT4",
     "description": "MobileLLM 600M，端侧英文理解与生成的均衡选择。",
     "tags": [
@@ -251,7 +262,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "Qwen2-0.5B-Instruct-MNN",
@@ -272,7 +284,8 @@
     "recommended": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "minimind2",
@@ -280,7 +293,7 @@
     "vendor": "Nanbeige",
     "paramsB": 0.14,
     "sizeBytes": 68518939,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Nanbeige 官方 MNN 版本，0.14B 参数，支持文本对话，下载约 65 MB。参数规模以官方仓库为准。",
     "tags": [
@@ -293,7 +306,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "bge-large-zh",
@@ -301,7 +315,7 @@
     "vendor": "BERT",
     "paramsB": 0.2,
     "sizeBytes": 217048659,
-    "contextLength": 0,
+    "contextLength": 512,
     "quant": "INT8",
     "description": "BERT 官方 MNN 版本，0.2B 参数，支持文本对话，下载约 207 MB。参数规模以官方仓库为准。",
     "tags": [
@@ -314,7 +328,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-3-270m-it",
@@ -322,7 +337,7 @@
     "vendor": "Gemma",
     "paramsB": 0.27,
     "sizeBytes": 308727585,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Gemma 官方 MNN 版本，0.27B 参数，支持文本对话，下载约 294 MB。",
     "tags": [
@@ -335,7 +350,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "smoldocling-256m-preview",
@@ -343,7 +359,7 @@
     "vendor": "Smol",
     "paramsB": 0.256,
     "sizeBytes": 311430540,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "Smol 官方 MNN 版本，0.256B 参数，支持文本对话，下载约 297 MB。",
     "tags": [
@@ -356,7 +372,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "yufeng-xguard-reason-0-6b",
@@ -364,7 +381,7 @@
     "vendor": "YuFeng",
     "paramsB": 0.6,
     "sizeBytes": 377731645,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "YuFeng 官方 MNN 版本，0.6B 参数，支持安全，下载约 360 MB。",
     "tags": [
@@ -378,7 +395,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "gte-sentence-embedding-multilingual-base",
@@ -386,7 +404,7 @@
     "vendor": "Other",
     "paramsB": 0.2,
     "sizeBytes": 452241196,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "fp16/bf16",
     "description": "Other 官方 MNN 版本，0.2B 参数，支持文本对话，下载约 431 MB。参数规模以官方仓库为准。",
     "tags": [
@@ -399,7 +417,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3guard-gen-0-6b",
@@ -407,7 +426,7 @@
     "vendor": "Qwen",
     "paramsB": 0.6,
     "sizeBytes": 455422827,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，0.6B 参数，支持安全，下载约 434 MB。",
     "tags": [
@@ -421,7 +440,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3guard-stream-0-6b",
@@ -429,7 +449,7 @@
     "vendor": "Qwen",
     "paramsB": 0.6,
     "sizeBytes": 455422976,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，0.6B 参数，支持安全，下载约 434 MB。",
     "tags": [
@@ -443,7 +463,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "fastvlm-0-5b-stage3",
@@ -451,7 +472,7 @@
     "vendor": "FastVLM",
     "paramsB": 0.5,
     "sizeBytes": 519168032,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT8",
     "description": "FastVLM 官方 MNN 版本，0.5B 参数，支持多模态，下载约 495 MB。",
     "tags": [
@@ -465,7 +486,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "fastvlm-0-5b-stage2",
@@ -473,7 +495,7 @@
     "vendor": "FastVLM",
     "paramsB": 0.5,
     "sizeBytes": 519168032,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT8",
     "description": "FastVLM 官方 MNN 版本，0.5B 参数，支持多模态，下载约 495 MB。",
     "tags": [
@@ -487,7 +509,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-5-0-8b",
@@ -495,7 +518,7 @@
     "vendor": "Qwen",
     "paramsB": 0.8,
     "sizeBytes": 547648308,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，0.8B 参数，支持思考与多模态，下载约 522 MB。",
     "tags": [
@@ -511,7 +534,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "smolvlm-500m-instruct",
@@ -519,7 +543,7 @@
     "vendor": "Smol",
     "paramsB": 0.5,
     "sizeBytes": 607101723,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "Smol 官方 MNN 版本，0.5B 参数，支持多模态，下载约 579 MB。",
     "tags": [
@@ -533,7 +557,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "tinyllama-1-1b-chat",
@@ -541,7 +566,7 @@
     "vendor": "Llama",
     "paramsB": 1.1,
     "sizeBytes": 654513433,
-    "contextLength": 0,
+    "contextLength": 2048,
     "quant": "INT4",
     "description": "Llama 官方 MNN 版本，1.1B 参数，支持文本对话，下载约 624 MB。",
     "tags": [
@@ -554,7 +579,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "mobilellm-1b",
@@ -562,7 +588,7 @@
     "vendor": "MobileLLM",
     "paramsB": 1.0,
     "sizeBytes": 657167290,
-    "contextLength": 0,
+    "contextLength": 2048,
     "quant": "INT4",
     "description": "MobileLLM 官方 MNN 版本，1B 参数，支持文本对话，下载约 627 MB。",
     "tags": [
@@ -575,7 +601,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "tinyllama-1-1b-chat-v1-0",
@@ -583,7 +610,7 @@
     "vendor": "TinyLlama",
     "paramsB": 1.1,
     "sizeBytes": 721208469,
-    "contextLength": 0,
+    "contextLength": 2048,
     "quant": "INT4",
     "description": "TinyLlama 官方 MNN 版本，1.1B 参数，支持文本对话，下载约 688 MB。",
     "tags": [
@@ -596,7 +623,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-5-1-5b-instruct",
@@ -604,7 +632,7 @@
     "vendor": "Qwen",
     "paramsB": 1.5,
     "sizeBytes": 879484183,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，1.5B 参数，支持文本对话，下载约 839 MB。",
     "tags": [
@@ -617,7 +645,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "internvl2-5-1b",
@@ -625,7 +654,7 @@
     "vendor": "InternLM",
     "paramsB": 1.0,
     "sizeBytes": 887553126,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "InternLM 官方 MNN 版本，1B 参数，支持多模态，下载约 846 MB。",
     "tags": [
@@ -639,7 +668,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-3-1b-it-qat-q4-0-gguf",
@@ -647,7 +677,7 @@
     "vendor": "Gemma",
     "paramsB": 1.0,
     "sizeBytes": 1051878337,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Gemma 官方 MNN 版本，1B 参数，支持思考，下载约 1003 MB。",
     "tags": [
@@ -662,7 +692,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "vibethinker-1-5b",
@@ -670,7 +701,7 @@
     "vendor": "VibeThinker",
     "paramsB": 1.5,
     "sizeBytes": 1086933122,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "VibeThinker 官方 MNN 版本，1.5B 参数，支持文本对话，下载约 1.0 GB。",
     "tags": [
@@ -683,7 +714,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "smollm2-1-7b-instruct",
@@ -691,7 +723,7 @@
     "vendor": "Smol",
     "paramsB": 1.7,
     "sizeBytes": 1170101867,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT4",
     "description": "Smol 官方 MNN 版本，1.7B 参数，支持文本对话，下载约 1.1 GB。",
     "tags": [
@@ -704,7 +736,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "llama-3-2-1b-instruct",
@@ -712,7 +745,7 @@
     "vendor": "Llama",
     "paramsB": 1.0,
     "sizeBytes": 1227442357,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT8",
     "description": "Llama 官方 MNN 版本，1B 参数，支持文本对话，下载约 1.1 GB。",
     "tags": [
@@ -725,7 +758,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "fastvlm-1-5b-stage3",
@@ -733,7 +767,7 @@
     "vendor": "FastVLM",
     "paramsB": 1.5,
     "sizeBytes": 1228204915,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT8",
     "description": "FastVLM 官方 MNN 版本，1.5B 参数，支持多模态，下载约 1.1 GB。",
     "tags": [
@@ -747,7 +781,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "fastvlm-1-5b-stage2",
@@ -755,7 +790,7 @@
     "vendor": "FastVLM",
     "paramsB": 1.5,
     "sizeBytes": 1228204915,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT8",
     "description": "FastVLM 官方 MNN 版本，1.5B 参数，支持多模态，下载约 1.1 GB。",
     "tags": [
@@ -769,7 +804,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-1-7b",
@@ -777,7 +813,7 @@
     "vendor": "Qwen",
     "paramsB": 1.7,
     "sizeBytes": 1235523319,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，1.7B 参数，支持思考，下载约 1.2 GB。",
     "tags": [
@@ -792,7 +828,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "hunyuan-1-8b-instruct",
@@ -800,7 +837,7 @@
     "vendor": "Hunyuan",
     "paramsB": 1.8,
     "sizeBytes": 1247189828,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Hunyuan 官方 MNN 版本，1.8B 参数，支持思考，下载约 1.2 GB。",
     "tags": [
@@ -815,7 +852,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-5-coder-1-5b-instruct",
@@ -823,7 +861,7 @@
     "vendor": "Qwen",
     "paramsB": 1.5,
     "sizeBytes": 1343595873,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，1.5B 参数，支持代码，下载约 1.3 GB。",
     "tags": [
@@ -837,7 +875,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-5-math-1-5b-instruct",
@@ -845,7 +884,7 @@
     "vendor": "Qwen",
     "paramsB": 1.5,
     "sizeBytes": 1343610154,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，1.5B 参数，支持数学，下载约 1.3 GB。",
     "tags": [
@@ -859,7 +898,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-1-5b-instruct",
@@ -867,7 +907,7 @@
     "vendor": "Qwen",
     "paramsB": 1.5,
     "sizeBytes": 1346227023,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，1.5B 参数，支持文本对话，下载约 1.3 GB。",
     "tags": [
@@ -880,7 +920,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-5-2b",
@@ -888,7 +929,7 @@
     "vendor": "Qwen",
     "paramsB": 2.0,
     "sizeBytes": 1386694140,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，2B 参数，支持思考与多模态，下载约 1.3 GB。",
     "tags": [
@@ -904,7 +945,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-vl-2b-thinking",
@@ -912,7 +954,7 @@
     "vendor": "Qwen",
     "paramsB": 2.0,
     "sizeBytes": 1475228296,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，2B 参数，支持思考与多模态，下载约 1.4 GB。",
     "tags": [
@@ -927,7 +969,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-vl-2b-instruct",
@@ -935,7 +978,7 @@
     "vendor": "Qwen",
     "paramsB": 2.0,
     "sizeBytes": 1475228382,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，2B 参数，支持多模态，下载约 1.4 GB。",
     "tags": [
@@ -949,7 +992,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "deepseek-r1-1-5b-qwen",
@@ -957,7 +1001,7 @@
     "vendor": "DeepSeek",
     "paramsB": 1.5,
     "sizeBytes": 1557822247,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT8",
     "description": "DeepSeek 官方 MNN 版本，1.5B 参数，支持思考，下载约 1.5 GB。",
     "tags": [
@@ -971,7 +1015,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-vl-2b-instruct",
@@ -979,7 +1024,7 @@
     "vendor": "Qwen",
     "paramsB": 2.0,
     "sizeBytes": 1718109172,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，2B 参数，支持多模态，下载约 1.6 GB。",
     "tags": [
@@ -993,7 +1038,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "smollm3-3b",
@@ -1001,7 +1047,7 @@
     "vendor": "Smol",
     "paramsB": 3.0,
     "sizeBytes": 2057584038,
-    "contextLength": 0,
+    "contextLength": 65536,
     "quant": "INT4",
     "description": "Smol 官方 MNN 版本，3B 参数，支持思考，下载约 1.9 GB。",
     "tags": [
@@ -1016,7 +1062,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "websailor-3b",
@@ -1024,7 +1071,7 @@
     "vendor": "Qwen",
     "paramsB": 3.0,
     "sizeBytes": 2089778449,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，3B 参数，支持文本对话，下载约 1.9 GB。",
     "tags": [
@@ -1038,7 +1085,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen2-5-3b-instruct",
@@ -1046,7 +1094,7 @@
     "vendor": "Qwen",
     "paramsB": 3.0,
     "sizeBytes": 2369484250,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，3B 参数，支持文本对话，下载约 2.2 GB。",
     "tags": [
@@ -1059,7 +1107,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "smolvlm-instruct",
@@ -1067,7 +1116,7 @@
     "vendor": "Smol",
     "paramsB": 2.2,
     "sizeBytes": 2479896055,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "fp16/bf16",
     "description": "Smol 官方 MNN 版本，2.2B 参数，支持多模态，下载约 2.3 GB。",
     "tags": [
@@ -1081,7 +1130,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "smolvlm2-2-2b-instruct",
@@ -1089,7 +1139,7 @@
     "vendor": "Smol",
     "paramsB": 2.2,
     "sizeBytes": 2480683993,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "Smol 官方 MNN 版本，2.2B 参数，支持多模态，下载约 2.3 GB。",
     "tags": [
@@ -1103,7 +1153,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "llama-3-2-3b-instruct",
@@ -1111,7 +1162,7 @@
     "vendor": "Llama",
     "paramsB": 3.0,
     "sizeBytes": 2609816917,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "Llama 官方 MNN 版本，3B 参数，支持文本对话，下载约 2.4 GB。",
     "tags": [
@@ -1124,7 +1175,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-2-2b-it",
@@ -1132,7 +1184,7 @@
     "vendor": "Gemma",
     "paramsB": 2.0,
     "sizeBytes": 2673390373,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "fp16/bf16",
     "description": "Gemma 官方 MNN 版本，2B 参数，支持文本对话，下载约 2.5 GB。",
     "tags": [
@@ -1145,7 +1197,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-4b",
@@ -1153,7 +1206,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2713766604,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持思考，下载约 2.5 GB。",
     "tags": [
@@ -1168,7 +1221,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3guard-gen-4b",
@@ -1176,7 +1230,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2714985905,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持安全，下载约 2.5 GB。",
     "tags": [
@@ -1190,7 +1244,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3guard-stream-4b",
@@ -1198,7 +1253,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2714986054,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持安全，下载约 2.5 GB。",
     "tags": [
@@ -1212,7 +1267,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-4b-saferl",
@@ -1220,7 +1276,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2714986204,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持文本对话，下载约 2.5 GB。",
     "tags": [
@@ -1233,7 +1289,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-4b-instruct-2507",
@@ -1241,7 +1298,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2715010252,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持文本对话，下载约 2.5 GB。",
     "tags": [
@@ -1255,7 +1312,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-4b-thinking-2507",
@@ -1263,7 +1321,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2715010257,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持思考，下载约 2.5 GB。",
     "tags": [
@@ -1278,7 +1336,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-5-vl-3b-instruct",
@@ -1286,7 +1345,7 @@
     "vendor": "Qwen",
     "paramsB": 3.0,
     "sizeBytes": 2736203723,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，3B 参数，支持多模态，下载约 2.5 GB。",
     "tags": [
@@ -1300,7 +1359,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "hunyuan-4b-instruct",
@@ -1308,7 +1368,7 @@
     "vendor": "Hunyuan",
     "paramsB": 4.0,
     "sizeBytes": 2829106140,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Hunyuan 官方 MNN 版本，4B 参数，支持思考，下载约 2.6 GB。",
     "tags": [
@@ -1323,7 +1383,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "minicpm-v-4",
@@ -1331,7 +1392,7 @@
     "vendor": "MiniCPM",
     "paramsB": 8.0,
     "sizeBytes": 2834668967,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "fp16/bf16",
     "description": "MiniCPM 官方 MNN 版本，8B 参数，支持多模态，下载约 2.6 GB。",
     "tags": [
@@ -1346,7 +1407,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-5-4b",
@@ -1354,7 +1416,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2845946907,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持思考与多模态，下载约 2.7 GB。",
     "tags": [
@@ -1370,7 +1432,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-vl-4b-thinking",
@@ -1378,7 +1441,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2958468649,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持思考与多模态，下载约 2.8 GB。",
     "tags": [
@@ -1393,7 +1456,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-vl-4b-instruct",
@@ -1401,7 +1465,7 @@
     "vendor": "Qwen",
     "paramsB": 4.0,
     "sizeBytes": 2958468736,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，4B 参数，支持多模态，下载约 2.8 GB。",
     "tags": [
@@ -1415,7 +1479,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "nanbeige4-3b-thinking-2511",
@@ -1423,7 +1488,7 @@
     "vendor": "Nanbeige",
     "paramsB": 3.0,
     "sizeBytes": 3049996164,
-    "contextLength": 0,
+    "contextLength": 65536,
     "quant": "INT8",
     "description": "Nanbeige 官方 MNN 版本，3B 参数，支持思考，下载约 2.8 GB。",
     "tags": [
@@ -1437,7 +1502,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "phi-2",
@@ -1445,7 +1511,7 @@
     "vendor": "Phi",
     "paramsB": 2.7,
     "sizeBytes": 3092773369,
-    "contextLength": 0,
+    "contextLength": 2048,
     "quant": "fp16/bf16",
     "description": "Phi 官方 MNN 版本，2.7B 参数，支持文本对话，下载约 2.9 GB。",
     "tags": [
@@ -1458,7 +1524,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-3-4b-it-q4-0",
@@ -1466,7 +1533,7 @@
     "vendor": "Gemma",
     "paramsB": 4.0,
     "sizeBytes": 3817306732,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Gemma 官方 MNN 版本，4B 参数，支持文本对话，下载约 3.6 GB。",
     "tags": [
@@ -1479,7 +1546,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "llama-2-7b-chat-ms",
@@ -1487,7 +1555,7 @@
     "vendor": "Llama",
     "paramsB": 7.0,
     "sizeBytes": 3998655662,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT4",
     "description": "Llama 官方 MNN 版本，7B 参数，支持文本对话，下载约 3.7 GB。",
     "tags": [
@@ -1500,7 +1568,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "chatglm-6b",
@@ -1508,7 +1577,7 @@
     "vendor": "THUDM",
     "paramsB": 6.0,
     "sizeBytes": 4170918607,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "THUDM 官方 MNN 版本，6B 参数，支持文本对话，下载约 3.9 GB。",
     "tags": [
@@ -1521,7 +1590,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "baichuan2-7b-chat",
@@ -1529,7 +1599,7 @@
     "vendor": "Baichuan",
     "paramsB": 7.0,
     "sizeBytes": 4547302552,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT4",
     "description": "Baichuan 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.2 GB。",
     "tags": [
@@ -1542,7 +1612,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "deepseek-r1-7b-qwen",
@@ -1550,7 +1621,7 @@
     "vendor": "DeepSeek",
     "paramsB": 7.0,
     "sizeBytes": 4647473227,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "DeepSeek 官方 MNN 版本，7B 参数，支持思考，下载约 4.3 GB。",
     "tags": [
@@ -1564,7 +1635,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "internlm-chat-7b",
@@ -1572,7 +1644,7 @@
     "vendor": "InternLM",
     "paramsB": 7.0,
     "sizeBytes": 4749260969,
-    "contextLength": 0,
+    "contextLength": 2048,
     "quant": "INT4",
     "description": "InternLM 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.4 GB。",
     "tags": [
@@ -1585,7 +1657,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "deepseek-vl-7b-chat",
@@ -1593,7 +1666,7 @@
     "vendor": "DeepSeek",
     "paramsB": 7.0,
     "sizeBytes": 4949488405,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "DeepSeek 官方 MNN 版本，7B 参数，支持多模态，下载约 4.6 GB。",
     "tags": [
@@ -1607,7 +1680,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "hunyuan-7b-instruct",
@@ -1615,7 +1689,7 @@
     "vendor": "Hunyuan",
     "paramsB": 7.0,
     "sizeBytes": 4957879120,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Hunyuan 官方 MNN 版本，7B 参数，支持思考，下载约 4.6 GB。",
     "tags": [
@@ -1630,7 +1704,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "hunyuan-mt-7b",
@@ -1638,7 +1713,7 @@
     "vendor": "Hunyuan",
     "paramsB": 7.0,
     "sizeBytes": 4958284491,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Hunyuan 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.6 GB。",
     "tags": [
@@ -1651,7 +1726,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen2-5-7b-instruct",
@@ -1659,7 +1735,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5079845535,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.7 GB。",
     "tags": [
@@ -1672,7 +1748,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-5-coder-7b-instruct",
@@ -1680,7 +1757,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5079861358,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，7B 参数，支持代码，下载约 4.7 GB。",
     "tags": [
@@ -1694,7 +1771,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen2-5-math-7b-instruct",
@@ -1702,7 +1780,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5079862221,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，7B 参数，支持数学，下载约 4.7 GB。",
     "tags": [
@@ -1716,7 +1794,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-7b-instruct",
@@ -1724,7 +1803,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5085851475,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.7 GB。",
     "tags": [
@@ -1737,7 +1816,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "deepseek-prover-v2-7b",
@@ -1745,7 +1825,7 @@
     "vendor": "DeepSeek",
     "paramsB": 7.0,
     "sizeBytes": 5110874172,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "DeepSeek 官方 MNN 版本，7B 参数，支持数学，下载约 4.8 GB。",
     "tags": [
@@ -1759,7 +1839,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "mimo-7b-base",
@@ -1767,7 +1848,7 @@
     "vendor": "MiMo",
     "paramsB": 7.0,
     "sizeBytes": 5189964401,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "MiMo 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.8 GB。",
     "tags": [
@@ -1780,7 +1861,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "mimo-7b-rl",
@@ -1788,7 +1870,7 @@
     "vendor": "MiMo",
     "paramsB": 7.0,
     "sizeBytes": 5189964512,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "MiMo 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.8 GB。",
     "tags": [
@@ -1801,7 +1883,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "mimo-7b-sft",
@@ -1809,7 +1892,7 @@
     "vendor": "MiMo",
     "paramsB": 7.0,
     "sizeBytes": 5189964518,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "MiMo 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.8 GB。",
     "tags": [
@@ -1822,7 +1905,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "mimo-7b-rl-zero",
@@ -1830,7 +1914,7 @@
     "vendor": "MiMo",
     "paramsB": 7.0,
     "sizeBytes": 5189964542,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "MiMo 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.8 GB。",
     "tags": [
@@ -1843,7 +1927,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen-7b-chat",
@@ -1851,7 +1936,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5259997633,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，7B 参数，支持文本对话，下载约 4.9 GB。",
     "tags": [
@@ -1864,7 +1949,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "meta-llama-3-1-8b-instruct",
@@ -1872,7 +1958,7 @@
     "vendor": "Llama",
     "paramsB": 8.0,
     "sizeBytes": 5292826319,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "Llama 官方 MNN 版本，8B 参数，支持文本对话，下载约 4.9 GB。",
     "tags": [
@@ -1885,7 +1971,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "meta-llama-3-8b-instruct",
@@ -1893,7 +1980,7 @@
     "vendor": "Llama",
     "paramsB": 8.0,
     "sizeBytes": 5292829433,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT4",
     "description": "Llama 官方 MNN 版本，8B 参数，支持文本对话，下载约 4.9 GB。",
     "tags": [
@@ -1906,7 +1993,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-5-vl-7b-instruct",
@@ -1914,7 +2002,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5449575998,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，7B 参数，支持多模态，下载约 5.1 GB。",
     "tags": [
@@ -1928,7 +2016,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-vl-8b-thinking",
@@ -1936,7 +2025,7 @@
     "vendor": "Qwen",
     "paramsB": 8.0,
     "sizeBytes": 5453819329,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，8B 参数，支持思考与多模态，下载约 5.1 GB。",
     "tags": [
@@ -1951,7 +2040,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-vl-8b-instruct",
@@ -1959,7 +2049,7 @@
     "vendor": "Qwen",
     "paramsB": 8.0,
     "sizeBytes": 5453819411,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，8B 参数，支持多模态，下载约 5.1 GB。",
     "tags": [
@@ -1973,7 +2063,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen2-vl-7b-instruct",
@@ -1981,7 +2072,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5457279512,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，7B 参数，支持多模态，下载约 5.1 GB。",
     "tags": [
@@ -1995,7 +2086,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "deepseek-r1-0528-qwen3-8b",
@@ -2003,7 +2095,7 @@
     "vendor": "DeepSeek",
     "paramsB": 8.0,
     "sizeBytes": 5507637322,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "DeepSeek 官方 MNN 版本，8B 参数，支持思考，下载约 5.1 GB。",
     "tags": [
@@ -2018,7 +2110,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-8b",
@@ -2026,7 +2119,7 @@
     "vendor": "Qwen",
     "paramsB": 8.0,
     "sizeBytes": 5510449914,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，8B 参数，支持思考，下载约 5.1 GB。",
     "tags": [
@@ -2041,7 +2134,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "minicpm4-8b",
@@ -2049,7 +2143,7 @@
     "vendor": "MiniCPM",
     "paramsB": 8.0,
     "sizeBytes": 5533462384,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "MiniCPM 官方 MNN 版本，8B 参数，支持文本对话，下载约 5.2 GB。",
     "tags": [
@@ -2063,7 +2157,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lingshu-7b",
@@ -2071,7 +2166,7 @@
     "vendor": "Lingshu",
     "paramsB": 7.0,
     "sizeBytes": 5890502337,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "Lingshu 官方 MNN 版本，7B 参数，支持多模态，下载约 5.5 GB。",
     "tags": [
@@ -2086,7 +2181,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3guard-gen-8b",
@@ -2094,7 +2190,7 @@
     "vendor": "Qwen",
     "paramsB": 8.0,
     "sizeBytes": 5982205320,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，8B 参数，支持安全，下载约 5.6 GB。",
     "tags": [
@@ -2108,7 +2204,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3guard-stream-8b",
@@ -2116,7 +2213,7 @@
     "vendor": "Qwen",
     "paramsB": 8.0,
     "sizeBytes": 5982205469,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，8B 参数，支持安全，下载约 5.6 GB。",
     "tags": [
@@ -2130,7 +2227,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "yufeng-xguard-reason-8b",
@@ -2138,7 +2236,7 @@
     "vendor": "YuFeng",
     "paramsB": 8.0,
     "sizeBytes": 5982333183,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "YuFeng 官方 MNN 版本，8B 参数，支持安全，下载约 5.6 GB。",
     "tags": [
@@ -2152,7 +2250,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "glm-4-9b-chat",
@@ -2160,7 +2259,7 @@
     "vendor": "THUDM",
     "paramsB": 9.0,
     "sizeBytes": 6209033690,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "THUDM 官方 MNN 版本，9B 参数，支持文本对话，下载约 5.8 GB。",
     "tags": [
@@ -2173,7 +2272,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-7b-it",
@@ -2181,7 +2281,7 @@
     "vendor": "Gemma",
     "paramsB": 7.0,
     "sizeBytes": 6394220291,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "Gemma 官方 MNN 版本，7B 参数，支持文本对话，下载约 6.0 GB。",
     "tags": [
@@ -2194,7 +2294,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "yi-6b-chat",
@@ -2202,7 +2303,7 @@
     "vendor": "01.AI",
     "paramsB": 6.0,
     "sizeBytes": 6717595511,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT8",
     "description": "01.AI 官方 MNN 版本，6B 参数，支持文本对话，下载约 6.3 GB。",
     "tags": [
@@ -2215,7 +2316,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "codegeex2-6b",
@@ -2223,7 +2325,7 @@
     "vendor": "THUDM",
     "paramsB": 6.0,
     "sizeBytes": 6916231124,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "THUDM 官方 MNN 版本，6B 参数，支持文本对话，下载约 6.4 GB。",
     "tags": [
@@ -2236,7 +2338,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "chatglm2-6b",
@@ -2244,7 +2347,7 @@
     "vendor": "THUDM",
     "paramsB": 6.0,
     "sizeBytes": 6918504639,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "THUDM 官方 MNN 版本，6B 参数，支持文本对话，下载约 6.4 GB。",
     "tags": [
@@ -2257,7 +2360,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "chatglm3-6b",
@@ -2265,7 +2369,7 @@
     "vendor": "THUDM",
     "paramsB": 6.0,
     "sizeBytes": 6918897644,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT8",
     "description": "THUDM 官方 MNN 版本，6B 参数，支持文本对话，下载约 6.4 GB。",
     "tags": [
@@ -2278,7 +2382,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-2-9b-it",
@@ -2286,7 +2391,7 @@
     "vendor": "Gemma",
     "paramsB": 9.0,
     "sizeBytes": 7080704779,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT8",
     "description": "Gemma 官方 MNN 版本，9B 参数，支持文本对话，下载约 6.6 GB。",
     "tags": [
@@ -2299,7 +2404,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-5-9b",
@@ -2307,7 +2413,7 @@
     "vendor": "Qwen",
     "paramsB": 9.0,
     "sizeBytes": 7274875830,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT8",
     "description": "Qwen 官方 MNN 版本，9B 参数，支持思考与多模态，下载约 6.8 GB。",
     "tags": [
@@ -2323,7 +2429,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "deepseek-llm-7b-chat",
@@ -2331,7 +2438,7 @@
     "vendor": "DeepSeek",
     "paramsB": 7.0,
     "sizeBytes": 7771364266,
-    "contextLength": 0,
+    "contextLength": 4096,
     "quant": "INT8",
     "description": "DeepSeek 官方 MNN 版本，7B 参数，支持文本对话，下载约 7.2 GB。",
     "tags": [
@@ -2344,7 +2451,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen-vl-chat",
@@ -2352,7 +2460,7 @@
     "vendor": "Qwen",
     "paramsB": 9.6,
     "sizeBytes": 9145507680,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "fp16/bf16",
     "description": "Qwen 官方 MNN 版本，9.6B 参数，支持多模态，下载约 8.5 GB。",
     "tags": [
@@ -2366,7 +2474,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-14b",
@@ -2374,7 +2483,7 @@
     "vendor": "Qwen",
     "paramsB": 14.0,
     "sizeBytes": 9435190853,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，14B 参数，支持思考，下载约 8.8 GB。",
     "tags": [
@@ -2389,7 +2498,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "gpt-oss-20b",
@@ -2397,7 +2507,7 @@
     "vendor": "GPT",
     "paramsB": 20.0,
     "sizeBytes": 13898033950,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "GPT 官方 MNN 版本，20B 参数，支持思考，下载约 12.9 GB。",
     "tags": [
@@ -2412,7 +2522,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-30b-a3b",
@@ -2420,7 +2531,7 @@
     "vendor": "Qwen",
     "paramsB": 30.0,
     "sizeBytes": 17748783268,
-    "contextLength": 0,
+    "contextLength": 40960,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，30B 参数，支持思考，下载约 16.5 GB。",
     "tags": [
@@ -2435,7 +2546,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-vl-30b-a3b-thinking",
@@ -2443,7 +2555,7 @@
     "vendor": "Qwen",
     "paramsB": 30.0,
     "sizeBytes": 19489921292,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，30B 参数，支持思考与多模态，下载约 18.2 GB。",
     "tags": [
@@ -2458,7 +2570,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-vl-30b-a3b-instruct",
@@ -2466,7 +2579,7 @@
     "vendor": "Qwen",
     "paramsB": 30.0,
     "sizeBytes": 19489921379,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，30B 参数，支持多模态，下载约 18.2 GB。",
     "tags": [
@@ -2480,7 +2593,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-32b",
@@ -2488,7 +2602,7 @@
     "vendor": "Qwen",
     "paramsB": 32.0,
     "sizeBytes": 19560618334,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，32B 参数，支持思考，下载约 18.2 GB。",
     "tags": [
@@ -2503,7 +2617,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-30b-a3b-instruct-2507",
@@ -2511,7 +2626,7 @@
     "vendor": "Qwen",
     "paramsB": 30.0,
     "sizeBytes": 19575782087,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，30B 参数，支持文本对话，下载约 18.2 GB。",
     "tags": [
@@ -2525,7 +2640,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-30b-a3b-thinking-2507",
@@ -2533,7 +2649,7 @@
     "vendor": "Qwen",
     "paramsB": 30.0,
     "sizeBytes": 19575782105,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，30B 参数，支持思考，下载约 18.2 GB。",
     "tags": [
@@ -2548,7 +2664,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-coder-30b-a3b-instruct",
@@ -2556,7 +2673,7 @@
     "vendor": "Qwen",
     "paramsB": 30.0,
     "sizeBytes": 19575785072,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，30B 参数，支持代码，下载约 18.2 GB。",
     "tags": [
@@ -2571,7 +2688,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwq-32b-preview",
@@ -2579,7 +2697,7 @@
     "vendor": "Qwen",
     "paramsB": 32.0,
     "sizeBytes": 19581135302,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，32B 参数，支持思考，下载约 18.2 GB。",
     "tags": [
@@ -2593,7 +2711,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwq-32b",
@@ -2601,7 +2720,7 @@
     "vendor": "Qwen",
     "paramsB": 32.0,
     "sizeBytes": 19599986931,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，32B 参数，支持文本对话，下载约 18.3 GB。",
     "tags": [
@@ -2614,7 +2733,8 @@
     "vision": false,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3-vl-32b-thinking",
@@ -2622,7 +2742,7 @@
     "vendor": "Qwen",
     "paramsB": 32.0,
     "sizeBytes": 20825698772,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，32B 参数，支持思考与多模态，下载约 19.4 GB。",
     "tags": [
@@ -2637,7 +2757,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-vl-32b-instruct",
@@ -2645,7 +2766,7 @@
     "vendor": "Qwen",
     "paramsB": 32.0,
     "sizeBytes": 20825698858,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，32B 参数，支持多模态，下载约 19.4 GB。",
     "tags": [
@@ -2659,7 +2780,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "qwen3-5-35b-a3b",
@@ -2667,7 +2789,7 @@
     "vendor": "Qwen",
     "paramsB": 35.0,
     "sizeBytes": 22797088046,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 版本，35B 参数，支持思考与多模态，下载约 21.2 GB。",
     "tags": [
@@ -2683,7 +2805,8 @@
     "vision": true,
     "temperature": 0.7,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "gemma-4-E2B-it-MNN",
@@ -2691,7 +2814,7 @@
     "vendor": "Gemma",
     "paramsB": 2.0,
     "sizeBytes": 3739999910,
-    "contextLength": 32768,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "Google Gemma 4 新一代端侧多模态模型，E2B 规格（5B 总参数/2B 有效激活），支持文本、图像与音频输入，MNN 官方预转换版本，下载约 3.5 GB。",
     "tags": [
@@ -2707,7 +2830,8 @@
     "vision": true,
     "temperature": 0.9,
     "topP": 0.95,
-    "topK": 64
+    "topK": 64,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-4-E4B-it-MNN",
@@ -2715,7 +2839,7 @@
     "vendor": "Gemma",
     "paramsB": 4.0,
     "sizeBytes": 5542174671,
-    "contextLength": 32768,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "Google Gemma 4 新一代端侧多模态模型，E4B 规格（8B 总参数/4B 有效激活），支持文本、图像与音频输入，MNN 官方预转换版本，下载约 5.2 GB。",
     "tags": [
@@ -2731,7 +2855,8 @@
     "vision": true,
     "temperature": 0.9,
     "topP": 0.95,
-    "topK": 64
+    "topK": 64,
+    "contextSource": "approx"
   },
   {
     "id": "gemma-4-26b-a4b-it-mnn",
@@ -2739,7 +2864,7 @@
     "vendor": "Gemma",
     "paramsB": 4.0,
     "sizeBytes": 14904614185,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Gemma 官方 MNN 转换版，Gemma 4 26B A 4B IT，支持图像理解，下载约 13.88 GB。",
     "tags": [
@@ -2752,7 +2877,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "gemma-4-31b-it-mnn",
@@ -2760,7 +2886,7 @@
     "vendor": "Gemma",
     "paramsB": 31.0,
     "sizeBytes": 19893381767,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "Gemma 官方 MNN 转换版，Gemma 4 31B IT，支持图像理解，下载约 18.53 GB。",
     "tags": [
@@ -2773,7 +2899,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "lfm2-350m-mnn",
@@ -2781,7 +2908,7 @@
     "vendor": "LFM",
     "paramsB": 0.35,
     "sizeBytes": 204177401,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 350M，下载约 0.19 GB。",
     "tags": [
@@ -2794,7 +2921,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-700m-mnn",
@@ -2802,7 +2930,7 @@
     "vendor": "LFM",
     "paramsB": 0.7,
     "sizeBytes": 422763726,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 700M，下载约 0.39 GB。",
     "tags": [
@@ -2815,7 +2943,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-1.2b-mnn",
@@ -2823,7 +2952,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 663768283,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 1.2B，下载约 0.62 GB。",
     "tags": [
@@ -2836,7 +2965,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-1.2b-extract-mnn",
@@ -2844,7 +2974,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 663768919,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 1.2B Extract，下载约 0.62 GB。",
     "tags": [
@@ -2857,7 +2987,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-1.2b-rag-mnn",
@@ -2865,7 +2996,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 663765893,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 1.2B RAG，下载约 0.62 GB。",
     "tags": [
@@ -2878,7 +3009,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-1.2b-tool-mnn",
@@ -2886,7 +3018,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 663766199,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 1.2B Tool，下载约 0.62 GB。",
     "tags": [
@@ -2899,7 +3031,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2.5-1.2b-base-mnn",
@@ -2907,7 +3040,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 734113168,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2.5 1.2B BASE，下载约 0.68 GB。",
     "tags": [
@@ -2920,7 +3053,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "lfm2.5-1.2b-instruct-mnn",
@@ -2928,7 +3062,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 663772270,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2.5 1.2B Instruct，下载约 0.62 GB。",
     "tags": [
@@ -2941,7 +3075,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2.5-1.2b-jp-mnn",
@@ -2949,7 +3084,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 663767884,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2.5 1.2B JP，下载约 0.62 GB。",
     "tags": [
@@ -2962,7 +3097,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2.5-1.2b-thinking-mnn",
@@ -2970,7 +3106,7 @@
     "vendor": "LFM",
     "paramsB": 1.2,
     "sizeBytes": 663774089,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2.5 1.2B Thinking，支持深度思考，下载约 0.62 GB。",
     "tags": [
@@ -2983,7 +3119,8 @@
     "vision": false,
     "temperature": 1.0,
     "topP": 0.95,
-    "topK": 64
+    "topK": 64,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-2.6b-mnn",
@@ -2991,7 +3128,7 @@
     "vendor": "LFM",
     "paramsB": 2.6,
     "sizeBytes": 1452315045,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 2.6B，下载约 1.35 GB。",
     "tags": [
@@ -3004,7 +3141,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-2.6b-exp-mnn",
@@ -3012,7 +3150,7 @@
     "vendor": "LFM",
     "paramsB": 2.6,
     "sizeBytes": 1452315842,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 2.6B EXP，下载约 1.35 GB。",
     "tags": [
@@ -3025,7 +3163,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-2.6b-transcript-mnn",
@@ -3033,7 +3172,7 @@
     "vendor": "LFM",
     "paramsB": 2.6,
     "sizeBytes": 1452315214,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 2.6B Transcript，下载约 1.35 GB。",
     "tags": [
@@ -3046,7 +3185,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-24b-a2b-mnn",
@@ -3054,7 +3194,7 @@
     "vendor": "LFM",
     "paramsB": 2.0,
     "sizeBytes": 13424805531,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 24B A 2B，下载约 12.50 GB。",
     "tags": [
@@ -3067,7 +3207,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-350m-enjp-mt-mnn",
@@ -3075,7 +3216,7 @@
     "vendor": "LFM",
     "paramsB": 0.35,
     "sizeBytes": 223530039,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 350M ENJP MT，下载约 0.21 GB。",
     "tags": [
@@ -3088,7 +3229,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "lfm2-350m-extract-mnn",
@@ -3096,7 +3238,7 @@
     "vendor": "LFM",
     "paramsB": 0.35,
     "sizeBytes": 204172248,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 350M Extract，下载约 0.19 GB。",
     "tags": [
@@ -3109,7 +3251,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-350m-math-mnn",
@@ -3117,7 +3260,7 @@
     "vendor": "LFM",
     "paramsB": 0.35,
     "sizeBytes": 712377029,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 350M Math，数学推理强，下载约 0.66 GB。",
     "tags": [
@@ -3130,7 +3273,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-350m-pii-extract-jp-mnn",
@@ -3138,7 +3282,7 @@
     "vendor": "LFM",
     "paramsB": 0.35,
     "sizeBytes": 204172560,
-    "contextLength": 0,
+    "contextLength": 128000,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 350M PII Extract JP，下载约 0.19 GB。",
     "tags": [
@@ -3151,7 +3295,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "exact"
   },
   {
     "id": "lfm2-vl-450m-mnn",
@@ -3159,7 +3304,7 @@
     "vendor": "LFM",
     "paramsB": 0.45,
     "sizeBytes": 327133364,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 VL 450M，支持图像理解，下载约 0.30 GB。",
     "tags": [
@@ -3172,7 +3317,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "lfm2-vl-1.6b-mnn",
@@ -3180,7 +3326,7 @@
     "vendor": "LFM",
     "paramsB": 1.6,
     "sizeBytes": 1169276830,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 VL 1.6B，支持图像理解，下载约 1.09 GB。",
     "tags": [
@@ -3193,7 +3339,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "lfm2-audio-1.5b-mnn",
@@ -3201,7 +3348,7 @@
     "vendor": "LFM",
     "paramsB": 1.5,
     "sizeBytes": 828121505,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "LFM 官方 MNN 转换版，LFM2 Audio 1.5B，支持音频，下载约 0.77 GB。",
     "tags": [
@@ -3214,7 +3361,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-mnn",
@@ -3222,7 +3370,7 @@
     "vendor": "Qwen",
     "paramsB": 27.0,
     "sizeBytes": 18858232780,
-    "contextLength": 0,
+    "contextLength": 262144,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 转换版，Qwen3.5 27B Claude 4.6 Opus Reasoning Distilled，支持深度思考、支持图像理解，下载约 17.56 GB。",
     "tags": [
@@ -3237,7 +3385,8 @@
     "vision": true,
     "temperature": 1.0,
     "topP": 0.95,
-    "topK": 64
+    "topK": 64,
+    "contextSource": "approx"
   },
   {
     "id": "fun-audio-chat-8b-mnn",
@@ -3245,7 +3394,7 @@
     "vendor": "FunAudio",
     "paramsB": 8.0,
     "sizeBytes": 6402556626,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "FunAudio 官方 MNN 转换版，Fun Audio Chat 8B，支持音频，下载约 5.96 GB。",
     "tags": [
@@ -3258,7 +3407,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen2.5-omni-3b-mnn",
@@ -3266,7 +3416,7 @@
     "vendor": "Qwen",
     "paramsB": 3.0,
     "sizeBytes": 4015568874,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 转换版，Qwen2.5 Omni 3B，支持图像理解、支持音频，下载约 3.74 GB。",
     "tags": [
@@ -3281,7 +3431,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen2.5-omni-7b-mnn",
@@ -3289,7 +3440,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 7111667453,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 转换版，Qwen2.5 Omni 7B，支持图像理解、支持音频，下载约 6.62 GB。",
     "tags": [
@@ -3304,7 +3455,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "smolvlm2-500m-video-instruct-mnn",
@@ -3312,7 +3464,7 @@
     "vendor": "Smol",
     "paramsB": 0.5,
     "sizeBytes": 607101890,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT4",
     "description": "Smol 官方 MNN 转换版，SmolVLM2 500M Video Instruct，支持视频理解，下载约 0.57 GB。",
     "tags": [
@@ -3326,7 +3478,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "smolvlm2-256m-video-instruct-mnn",
@@ -3334,7 +3487,7 @@
     "vendor": "Smol",
     "paramsB": 0.256,
     "sizeBytes": 311431899,
-    "contextLength": 0,
+    "contextLength": 8192,
     "quant": "INT4",
     "description": "Smol 官方 MNN 转换版，SmolVLM2 256M Video Instruct，支持视频理解，下载约 0.29 GB。",
     "tags": [
@@ -3348,7 +3501,8 @@
     "vision": true,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "qwen2-audio-7b-instruct-mnn",
@@ -3356,7 +3510,7 @@
     "vendor": "Qwen",
     "paramsB": 7.0,
     "sizeBytes": 5674468130,
-    "contextLength": 0,
+    "contextLength": 32768,
     "quant": "INT4",
     "description": "Qwen 官方 MNN 转换版，Qwen2 Audio 7B Instruct，支持音频，下载约 5.28 GB。",
     "tags": [
@@ -3369,7 +3523,8 @@
     "vision": false,
     "temperature": 0.8,
     "topP": 0.9,
-    "topK": 40
+    "topK": 40,
+    "contextSource": "approx"
   },
   {
     "id": "minicpm5-2b-mnn",
@@ -3377,7 +3532,7 @@
     "vendor": "MiniCPM",
     "paramsB": 2.0,
     "sizeBytes": 1440000000,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "MiniCPM 官方 MNN 转换版，MiniCPM5 2B，支持深度思考，下载约 1.34 GB。",
     "tags": [
@@ -3390,7 +3545,8 @@
     "vision": false,
     "temperature": 1.0,
     "topP": 0.95,
-    "topK": 64
+    "topK": 64,
+    "contextSource": "exact"
   },
   {
     "id": "minicpm5-1b-mnn",
@@ -3398,7 +3554,7 @@
     "vendor": "MiniCPM",
     "paramsB": 1.0,
     "sizeBytes": 634000000,
-    "contextLength": 0,
+    "contextLength": 131072,
     "quant": "INT4",
     "description": "MiniCPM 官方 MNN 转换版，MiniCPM5 1B，支持深度思考，下载约 0.59 GB。",
     "tags": [
@@ -3411,6 +3567,7 @@
     "vision": false,
     "temperature": 1.0,
     "topP": 0.95,
-    "topK": 64
+    "topK": 64,
+    "contextSource": "exact"
   }
 ]

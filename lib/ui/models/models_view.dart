@@ -154,7 +154,8 @@ class _ModelsViewState extends State<ModelsView> {
         builder: (context) => AlertDialog(
           title: Text('下载 ${model.name}'),
           content: Text(
-            '下载体积约 ${formatBytes(model.sizeBytes)}。'
+            '下载体积约 ${formatBytes(model.sizeBytes)}，'
+            '原生上下文 ${model.contextLabel}。'
             '该模型较大，端侧运行需要充足内存，手机上可能较慢或无法加载。是否继续？',
           ),
           actions: [
@@ -633,7 +634,8 @@ class _ModelItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${model.vendor} · ${formatBytes(model.sizeBytes)}',
+                          '${model.vendor} · ${formatBytes(model.sizeBytes)} · '
+                          '${model.contextLabel}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: text.bodyMedium?.copyWith(

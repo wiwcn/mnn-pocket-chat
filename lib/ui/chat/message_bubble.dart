@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/models.dart';
+import '../../core/thinking.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -134,10 +135,13 @@ class _AssistantMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final parts = splitThinking(message.content);
+    final parts = cachedSplitThinking(message.content);
     final thinking = parts.thinking.trim();
     final answer = parts.answer;
     final waitingFirstToken = streaming && message.content.trim().isEmpty;
+    // 还在推理、且尚无正文时不渲染空的消息气泡，避免出现一片空白容器。
+    final hasAnswerBlock =
+        answer.isNotEmpty || waitingFirstToken || thinking.isEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -148,27 +152,29 @@ class _AssistantMessage extends StatelessWidget {
             _ThinkingSection(
               key: ValueKey('think_${message.createdAt.microsecondsSinceEpoch}'),
               thinking: thinking,
-              autoExpand: streaming && answer.isEmpty,
+              state: parts.state,
+              streaming: streaming,
             ),
-          Container(
-            width: double.infinity,
-            color: scheme.surface,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (waitingFirstToken)
-                  Text(
-                    '●',
-                    style: text.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  )
-                else
-                  StreamingMarkdown(answer: answer, streaming: streaming),
-              ],
+          if (hasAnswerBlock)
+            Container(
+              width: double.infinity,
+              color: scheme.surface,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (waitingFirstToken)
+                    Text(
+                      '●',
+                      style: text.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    )
+                  else
+                    StreamingMarkdown(answer: answer, streaming: streaming),
+                ],
+              ),
             ),
-          ),
           if (!streaming)
             Row(
               children: [
@@ -215,38 +221,44 @@ class _AssistantMessage extends StatelessWidget {
 }
 
 class _ThinkingSection extends StatefulWidget {
-  const _ThinkingSection({super.key, required this.thinking, required this.autoExpand});
+  const _ThinkingSection({
+    super.key,
+    required this.thinking,
+    required this.state,
+    required this.streaming,
+  });
 
   final String thinking;
-  /// 流式思考阶段（尚无正文）自动展开；生成结束后自动收起。
-  /// 用户手动切换后不再受此字段影响。
-  final bool autoExpand;
+  final ThinkingState state;
+  final bool streaming;
 
   @override
   State<_ThinkingSection> createState() => _ThinkingSectionState();
 }
 
 class _ThinkingSectionState extends State<_ThinkingSection> {
-  late bool _open = widget.autoExpand;
-  /// 用户是否手动切换过。一旦手动操作，就尊重用户选择，
-  /// 后续流式 rebuild 不再用 autoExpand 覆盖回去——这正是
-  /// 之前「点折叠没用」的根因。
-  bool _userToggled = false;
-
-  @override
-  void didUpdateWidget(covariant _ThinkingSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_userToggled) return;
-    if (widget.autoExpand != oldWidget.autoExpand) {
-      setState(() => _open = widget.autoExpand);
-    }
-  }
+  /// 默认收起：只要检测到思考内容就自动折叠成一行，用户点开才展开。
+  /// 这是 kelivo 的行为，也是本版的核心诉求。用户的展开/收起选择会
+  /// 一直保留到这条消息被重建（key 基于 createdAt，滚动不会重置）。
+  bool _open = false;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final count = widget.thinking.length;
+    final thinkingNow = widget.streaming &&
+        widget.state == ThinkingState.thinking;
+
+    final String label;
+    if (_open) {
+      label = '收起思考';
+    } else if (thinkingNow) {
+      label = count > 0 ? '思考中 · $count 字' : '思考中…';
+    } else {
+      label = count > 0 ? '已深度思考 · $count 字' : '已深度思考';
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -254,23 +266,22 @@ class _ThinkingSectionState extends State<_ThinkingSection> {
         children: [
           InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () => setState(() {
-              _userToggled = true;
-              _open = !_open;
-            }),
+            onTap: () => setState(() => _open = !_open),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.psychology_outlined,
+                    thinkingNow
+                        ? Icons.psychology_outlined
+                        : Icons.lightbulb_outline,
                     size: 18,
                     color: scheme.primary,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    _open ? '收起思考' : '深度思考 · $count 字',
+                    label,
                     style: text.labelLarge?.copyWith(
                       color: scheme.primary,
                       fontWeight: FontWeight.w600,
@@ -416,46 +427,4 @@ Widget _richChunk(String raw, TextStyle? style) {
   }
   if (spans.isEmpty) spans.add(TextSpan(text: raw));
   return SelectableText.rich(TextSpan(style: style, children: spans));
-}
-
-({String thinking, String answer}) splitThinking(String raw) {
-  // 深度思考模型的推理标记千差万别：Qwen3/DeepSeek-R1 用 <think>，
-  // 部分模型用 <thinking>/<thought>/<reasoning>，LFM2-Thinking 等用
-  // <|think|>，还有大小写变体。统一识别并折叠，避免推理过程直接暴露在正文。
-  // 深度思考模型常见的推理标记（开, 闭）。Dart 字符串字面量中的标签
-  // 不会被当作标记语言，直接书写即可。
-  final pairs = <(String, String)>[
-    ('<think>', '</think>'),
-    ('<thinking>', '</thinking>'),
-    ('<thought>', '</thought>'),
-    ('<reasoning>', '</reasoning>'),
-    ('<analysis>', '</analysis>'),
-    ('<|think|>', '<|/think|>'),       // LFM2-Thinking
-    ('<|reasoning|>', '<|/reasoning|>'),
-    ('【思考】', '【/思考】'),
-  ];
-  // 大小写不敏感匹配：把原文与标记都转小写查找位置，再用位置切原文。
-  final lower = raw.toLowerCase();
-  for (final pair in pairs) {
-    final openTag = pair.$1.toLowerCase();
-    final closeTag = pair.$2.toLowerCase();
-    final start = lower.indexOf(openTag);
-    if (start < 0) continue;
-    final bodyStart = start + openTag.length;
-    final end = lower.indexOf(closeTag, bodyStart);
-    final String thinking;
-    final String answer;
-    if (end >= 0) {
-      thinking = raw.substring(bodyStart, end);
-      answer =
-          (raw.substring(0, start) + raw.substring(end + closeTag.length)).trim();
-    } else {
-      // 未闭合：模型在 max_new_tokens 内没吐出结束标记，剩余全部当推理，
-      // 不做外泄——这样即使未闭合也能折叠，正是本次实测要确认的场景。
-      thinking = raw.substring(bodyStart);
-      answer = raw.substring(0, start).trim();
-    }
-    return (thinking: thinking, answer: answer);
-  }
-  return (thinking: '', answer: raw);
 }

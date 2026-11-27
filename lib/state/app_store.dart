@@ -7,6 +7,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 
 import '../core/models.dart';
+import '../core/thinking.dart';
 import '../services/background_downloads.dart';
 import '../services/chat_store.dart';
 import '../services/debug_log.dart';
@@ -512,13 +513,17 @@ class AppStore extends ChangeNotifier {
             ))
         .toList();
     final limit = settings.contextMessages.clamp(1, 200);
-    final recent = history.length > limit
+    final byCount = history.length > limit
         ? history.sublist(history.length - limit)
         : history;
+    // 再按模型的原生上下文窗口裁剪：MNN 不会替我们做溢出保护，
+    // 超出 max_position_embeddings 时行为不可预期。这里按 token 估算
+    // 留出余量，从最新消息往旧消息累加。
+    final recent = _fitHistoryToContext(byCount, activeModel?.contextLength ?? 0);
     try {
       await engine.generate(
         history: recent,
-        systemPrompt: settings.systemPromptWithThinking(),
+        systemPrompt: settings.systemPrompt,
         maxTokens: settings.maxNewTokens,
       );
     } catch (e) {
@@ -584,13 +589,19 @@ class AppStore extends ChangeNotifier {
       case 'done':
         debugLog.info('chat',
             'generate done: output=${event.stats?.outputTokens ?? 0}, elapsed=${event.stats?.elapsedMs ?? 0}ms');
-        // 实测 think 闭合：记录原始输出是否包含 open/close 标签及长度，
-        // 便于判断部分模型是否输出不完整闭合导致思考内容外泄到正文。
+        // 实测思考折叠：记录解析结果（而非只看标签是否存在）。
+        // 注意 MNN 的 chat template 通常把 <think> 注入 prompt，
+        // 模型只输出 </think>，所以 open=false 是正常现象。
         if (session != null && session.messages.isNotEmpty) {
           final raw = session.messages.last.content;
-          debugLog.info('chat',
-              'think-audit: len=${raw.length} open=${raw.contains("\u003cthink\u003e")} '
-              'close=${raw.contains("\u003c/think\u003e")} head=${_preview(raw, 60)} tail=${_previewTail(raw, 60)}');
+          final parts = splitThinking(raw);
+          debugLog.info(
+              'chat',
+              'think-audit: state=${parts.state.name} '
+              'think=${parts.thinking.length} answer=${parts.answer.length} '
+              'open=${raw.contains("\u003cthink\u003e")} '
+              'close=${raw.contains("\u003c/think\u003e")} '
+              'head=${_preview(raw, 50)}');
         }
         _finishStreaming(stats: event.stats);
         if (session != null && session.messages.isNotEmpty) {
@@ -622,9 +633,42 @@ class AppStore extends ChangeNotifier {
     return flat.length <= max ? flat : '${flat.substring(0, max)}…';
   }
 
-  String _previewTail(String text, [int max = 60]) {
-    final flat = text.replaceAll('\n', '\\n').replaceAll('\r', '\\r');
-    return flat.length <= max ? flat : '…${flat.substring(flat.length - max)}';
+  /// 按模型原生上下文窗口裁剪历史。
+  ///
+  /// 只保留能塞进窗口的最新若干条，并给输出预留 25% 余量。token 数用
+  /// 「CJK 每字 1 token + 拉丁每 4 字符 1 token」粗略估算——不需要精确，
+  /// 目的是避免明显超出 `max_position_embeddings` 后引擎行为不可预期。
+  List<ChatMessage> _fitHistoryToContext(
+    List<ChatMessage> history,
+    int contextLength,
+  ) {
+    if (contextLength <= 0 || history.length < 2) return history;
+    final budget = (contextLength * 0.75).round();
+    var used = 0;
+    final kept = <ChatMessage>[];
+    for (var i = history.length - 1; i >= 0; i--) {
+      final message = history[i];
+      final cost = _estimateTokens(message.content) + 8;
+      // 至少保留最新一条，避免窗口极小时把用户当前问题也丢掉。
+      if (kept.isNotEmpty && used + cost > budget) break;
+      used += cost;
+      kept.add(message);
+    }
+    if (kept.length == history.length) return history;
+    debugLog.info('chat',
+        'context trim: ${history.length} -> ${kept.length} msgs, ~$used/$contextLength tokens');
+    return kept.reversed.toList();
+  }
+
+  /// 粗略的 token 估算：CJK 字符基本 1 字 1 token，拉丁文本约 4 字符 1 token。
+  static int _estimateTokens(String text) {
+    var cjk = 0;
+    var total = 0;
+    for (final rune in text.runes) {
+      total++;
+      if (rune >= 0x2E80) cjk++;
+    }
+    return cjk + ((total - cjk) / 4).ceil();
   }
 
   /// 检测文本尾部是否出现退化式重复：某个长度 1~12 的模式连续重复多次。

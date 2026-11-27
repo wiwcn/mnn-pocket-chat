@@ -10,6 +10,7 @@ class ModelSpec {
     required this.paramsB,
     required this.sizeBytes,
     required this.contextLength,
+    this.contextSource = 'exact',
     required this.quant,
     required this.description,
     required this.tags,
@@ -29,6 +30,10 @@ class ModelSpec {
   final double paramsB;
   final int sizeBytes;
   final int contextLength;
+  /// 上下文长度的来源：`exact` 表示取自模型原生配置
+  /// （llm_config.json / 上游 base_model 的 config.json）；
+  /// `approx` 表示按模型家族推断，展示时加「≈」前缀以示区别。
+  final String contextSource;
   final String quant;
   final String description;
   final List<String> tags;
@@ -47,10 +52,16 @@ class ModelSpec {
     return '${paramsB.toStringAsFixed(paramsB == paramsB.roundToDouble() ? 1 : 2)}B';
   }
 
-  /// 市场条目未提供上下文长度时以 0 表示，交给引擎自适应。
+  /// 原生上下文长度的展示文案。
+  ///
+  /// 数值来自模型自身的 `max_position_embeddings`；按家族推断的加 `≈`
+  /// 前缀，避免把估算值当成精确规格展示。
   String get contextLabel {
-    if (contextLength > 0) return '${(contextLength / 1024).round()}K ctx';
-    return '自适应 ctx';
+    if (contextLength <= 0) return '自适应 ctx';
+    final text = contextLength >= 1024
+        ? '${(contextLength / 1024).round()}K'
+        : '$contextLength';
+    return contextSource == 'approx' ? '≈$text ctx' : '$text ctx';
   }
 
   factory ModelSpec.fromJson(Map<String, dynamic> json) {
@@ -61,6 +72,7 @@ class ModelSpec {
       paramsB: (json['paramsB'] as num).toDouble(),
       sizeBytes: (json['sizeBytes'] as num).toInt(),
       contextLength: (json['contextLength'] as num).toInt(),
+      contextSource: json['contextSource'] as String? ?? 'exact',
       quant: json['quant'] as String,
       description: json['description'] as String,
       tags: (json['tags'] as List<dynamic>).cast<String>(),
@@ -251,7 +263,6 @@ class EngineSettings {
     this.repetitionPenalty = 1.05,
     this.ngramFactor = 1.1,
     this.enableThinking = true,
-    this.thinkingBudget = 0,
     this.systemPrompt =
         'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
   });
@@ -270,10 +281,12 @@ class EngineSettings {
   double repetitionPenalty;
   /// n-gram 惩罚因子：>1 时对连续重复的 n 元组降权，专门防「一长串相同字符」。
   double ngramFactor;
-  /// 深度思考模型是否输出 `<think>` 思考过程（enable_thinking）。
+  /// 深度思考模型是否输出 `<think>` 思考过程（原生开关）。
+  ///
+  /// 通过 MNN 的 `jinja.context.enable_thinking` 下发，与官方 iOS App 的
+  /// `setThinkingModeEnabled` 完全一致。MNN 引擎没有「思考强度/预算」这类
+  /// 参数，因此本 App 也不再伪造档位或注入提示词。
   bool enableThinking;
-  /// 思考预算（thinking_budget，单位 token）。0 表示不限制/交给模型默认。
-  int thinkingBudget;
   String systemPrompt;
 
   Map<String, dynamic> toJson() => {
@@ -288,7 +301,6 @@ class EngineSettings {
         'repetitionPenalty': repetitionPenalty,
         'ngramFactor': ngramFactor,
         'enableThinking': enableThinking,
-        'thinkingBudget': thinkingBudget,
         'systemPrompt': systemPrompt,
       };
 
@@ -306,7 +318,6 @@ class EngineSettings {
           (json['repetitionPenalty'] as num?)?.toDouble() ?? 1.05,
       ngramFactor: (json['ngramFactor'] as num?)?.toDouble() ?? 1.1,
       enableThinking: json['enableThinking'] as bool? ?? true,
-      thinkingBudget: (json['thinkingBudget'] as num?)?.toInt() ?? 0,
       systemPrompt: json['systemPrompt'] as String? ??
           'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
     );
@@ -329,54 +340,6 @@ class EngineSettings {
         },
       },
     };
-  }
-
-  /// 思考强度档位（0=关闭, 1=简洁, 2=标准, 3=深入）。
-  /// MNN 引擎本身只有 enable_thinking 开关、没有 thinking_budget 字段，
-  /// 因此强度通过「开关 + 注入到系统提示词里的思考详略约束」真实影响生成，
-  /// 而不是一个改了没反应的 no-op 滑块。
-  static const int thinkingLevelCount = 4;
-
-  int get thinkingLevel {
-    if (!enableThinking) return 0;
-    if (thinkingBudget <= 0) return 2;
-    if (thinkingBudget <= 1024) return 1;
-    if (thinkingBudget >= 4096) return 3;
-    return 2;
-  }
-
-  void setThinkingLevel(int level) {
-    final clamped = level.clamp(0, thinkingLevelCount - 1);
-    enableThinking = clamped > 0;
-    thinkingBudget = switch (clamped) {
-      0 => 0,      // 关闭
-      1 => 512,    // 简洁
-      2 => 2048,   // 标准
-      3 => 8192,   // 深入
-      _ => 2048,
-    };
-  }
-
-  static const List<String> thinkingLevelLabels = ['关闭', '简洁', '标准', '深入'];
-  static const List<String> thinkingLevelSubtitles = [
-    '直接回答，不输出推理过程',
-    '简要思考',
-    '平衡思考与速度',
-    '充分展开推理过程',
-  ];
-
-  /// 将思考强度附加到系统提示词后，作为对模型思考详略的自然语言约束。
-  /// 仅当思考开启且强度非「标准」时注入，避免干扰默认行为。
-  String systemPromptWithThinking() {
-    final base = systemPrompt.trim();
-    if (!enableThinking || thinkingBudget <= 0) return base;
-    final hint = thinkingBudget <= 1024
-        ? 'Keep your reasoning concise and brief.'
-        : thinkingBudget >= 4096
-            ? 'Think thoroughly and step by step before answering.'
-            : '';
-    if (hint.isEmpty) return base;
-    return base.isEmpty ? hint : '$base\n$hint';
   }
 
   /// [useMmapOverride] 用于加载失败时临时回退到非 mmap 重试，不改写持久化设置。

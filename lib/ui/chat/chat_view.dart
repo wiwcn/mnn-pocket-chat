@@ -402,7 +402,7 @@ class _ChatInputBox extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
                     child: ThinkingBadge(
-                      level: store.settings.thinkingLevel,
+                      enabled: store.settings.enableThinking,
                       onTap: onConfigureThinking,
                     ),
                   ),

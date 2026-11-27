@@ -1,29 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/models.dart';
 import '../../state/app_store.dart';
 
-/// 思考强度档位徽章：显示在对话输入栏，样式参考 kelivo 的
-/// reasoning badge —— 激活时主题色高亮 + 当前档位短标签。
+/// 对话输入栏的思考开关徽章。
+///
+/// 参考 kelivo 的 reasoning badge 形态（图标 + 短标签，激活时主题色高亮），
+/// 但语义严格对齐 MNN 的原生能力：只有开 / 关，没有档位。
 class ThinkingBadge extends StatelessWidget {
   const ThinkingBadge({
     super.key,
-    required this.level,
+    required this.enabled,
     required this.onTap,
   });
 
-  final int level;
+  final bool enabled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final active = level > 0;
-    final label = EngineSettings.thinkingLevelLabels[level.clamp(0, 3)];
     return Tooltip(
-      message: '思考强度 · $label',
+      message: enabled ? '深度思考：开启' : '深度思考：关闭',
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -32,7 +31,7 @@ class ThinkingBadge extends StatelessWidget {
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
           decoration: BoxDecoration(
-            color: active
+            color: enabled
                 ? scheme.primaryContainer
                 : scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(16),
@@ -41,20 +40,18 @@ class ThinkingBadge extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                active ? Icons.psychology : Icons.psychology_outlined,
+                enabled ? Icons.psychology : Icons.psychology_outlined,
                 size: 16,
-                color: active ? scheme.primary : scheme.onSurfaceVariant,
+                color: enabled ? scheme.primary : scheme.onSurfaceVariant,
               ),
-              if (active) ...[
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: text.labelSmall?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+              const SizedBox(width: 4),
+              Text(
+                enabled ? '思考' : '不思考',
+                style: text.labelSmall?.copyWith(
+                  color: enabled ? scheme.primary : scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -63,10 +60,12 @@ class ThinkingBadge extends StatelessWidget {
   }
 }
 
-/// 思考强度选择面板。样式与交互参考 kelivo / gpt_mobile：
-/// 从底部弹出的 sheet + 离散分段滑块 + 当前档位标题 + 副标题说明。
-/// 点击档位或拖动滑块即时提交（运行时经 set_config / 提示词注入生效），
-/// 无需重新加载模型。
+/// 思考开关面板。
+///
+/// 只有「开 / 关」一个原生开关——与 MNN 官方 iOS App 的
+/// `setThinkingModeEnabled` 完全一致：向引擎下发
+/// `{"jinja":{"context":{"enable_thinking":bool}}}`，无需重新加载模型。
+/// MNN 引擎不存在思考预算 / 强度参数，因此这里不再提供虚假档位。
 Future<void> showThinkingSheet(
   BuildContext context, {
   required AppStore store,
@@ -92,14 +91,14 @@ class _ThinkingSheet extends StatefulWidget {
 }
 
 class _ThinkingSheetState extends State<_ThinkingSheet> {
-  late int _level = widget.store.settings.thinkingLevel;
+  late bool _enabled = widget.store.settings.enableThinking;
 
-  Future<void> _commit(int level) async {
-    if (level == _level) return;
+  Future<void> _commit(bool value) async {
+    if (value == _enabled) return;
     HapticFeedback.selectionClick();
-    setState(() => _level = level);
+    setState(() => _enabled = value);
     final settings = widget.store.settings;
-    settings.setThinkingLevel(level);
+    settings.enableThinking = value;
     await widget.store.updateSettings(settings);
   }
 
@@ -107,8 +106,6 @@ class _ThinkingSheetState extends State<_ThinkingSheet> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final labels = EngineSettings.thinkingLevelLabels;
-    final subtitles = EngineSettings.thinkingLevelSubtitles;
 
     return SafeArea(
       top: false,
@@ -118,14 +115,17 @@ class _ThinkingSheetState extends State<_ThinkingSheet> {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: scheme.onSurface.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(999),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: scheme.onSurface.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -133,96 +133,31 @@ class _ThinkingSheetState extends State<_ThinkingSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
-                  Icon(Icons.psychology_outlined, color: scheme.primary, size: 22),
+                  Icon(Icons.psychology_outlined,
+                      color: scheme.primary, size: 22),
                   const SizedBox(width: 10),
-                  Text('思考强度', style: text.titleLarge),
+                  Text('深度思考', style: text.titleLarge),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-
-            // 离散分段滑块：点击档位刻度直接切换，视觉接近 kelivo EffortSlider。
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Column(
-                      key: ValueKey(_level),
-                      children: [
-                        Text(
-                          labels[_level],
-                          style: text.headlineSmall?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitles[_level],
-                          style: text.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 44,
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 8,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 13,
-                        ),
-                        overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 22,
-                        ),
-                        tickMarkShape: const RoundSliderTickMarkShape(
-                          tickMarkRadius: 4,
-                        ),
-                        activeTrackColor: scheme.primary,
-                        inactiveTrackColor:
-                            scheme.onSurface.withValues(alpha: 0.12),
-                        thumbColor: scheme.primary,
-                      ),
-                      child: Slider(
-                        value: _level.toDouble(),
-                        min: 0,
-                        max: (EngineSettings.thinkingLevelCount - 1).toDouble(),
-                        divisions: EngineSettings.thinkingLevelCount - 1,
-                        label: labels[_level],
-                        onChanged: (value) => _commit(value.round()),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final label in labels)
-                        SizedBox(
-                          width: 44,
-                          child: Text(
-                            label,
-                            textAlign: TextAlign.center,
-                            style: text.labelSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              value: _enabled,
+              onChanged: _commit,
+              title: Text(_enabled ? '开启' : '关闭'),
+              subtitle: Text(
+                _enabled
+                    ? '模型会先输出推理过程，再给出回答'
+                    : '直接回答，不输出推理过程',
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                '思考开关实时生效，无需重新加载模型；强度通过思考详略提示影响生成。',
+                '通过模型原生的 enable_thinking 开关控制，切换即时生效、无需重新加载；'
+                '本身不支持思考的模型开启后也不会有推理输出。',
                 style: text.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
