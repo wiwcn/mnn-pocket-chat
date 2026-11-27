@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mnn_pocket_chat/core/models.dart';
 import 'package:mnn_pocket_chat/core/thinking.dart';
 
 void main() {
@@ -172,6 +173,75 @@ void main() {
     test('短回答不会被启发式误判', () {
       final parts = splitThinking('你好！有什么我可以帮助你的吗？');
       expect(parts.hasThinking, isFalse);
+    });
+  });
+
+  group('EngineSettings 思考强度档位', () {
+    test('档位映射：关闭/简洁/标准/深入', () {
+      final s = EngineSettings();
+      s.setThinkingLevel(0);
+      expect(s.enableThinking, isFalse);
+      expect(s.thinkingLevel, 0);
+      s.setThinkingLevel(1);
+      expect(s.enableThinking, isTrue);
+      expect(s.thinkingBudget, 512);
+      expect(s.thinkingLevel, 1);
+      s.setThinkingLevel(2);
+      expect(s.thinkingBudget, 2048);
+      expect(s.thinkingLevel, 2);
+      s.setThinkingLevel(3);
+      expect(s.thinkingBudget, 8192);
+      expect(s.thinkingLevel, 3);
+    });
+
+    test('越界档位被夹取', () {
+      final s = EngineSettings();
+      s.setThinkingLevel(99);
+      expect(s.thinkingLevel, 3);
+      s.setThinkingLevel(-5);
+      expect(s.thinkingLevel, 0);
+    });
+
+    test('关闭或标准档不注入提示词，简洁/深入档注入', () {
+      final s = EngineSettings();
+      s.setThinkingLevel(0);
+      expect(s.systemPromptWithThinking(), s.systemPrompt.trim());
+      s.setThinkingLevel(2);
+      expect(s.systemPromptWithThinking(), s.systemPrompt.trim());
+      s.setThinkingLevel(1);
+      expect(s.systemPromptWithThinking(), contains('Keep your reasoning concise'));
+      s.setThinkingLevel(3);
+      expect(
+        s.systemPromptWithThinking(),
+        contains('Think thoroughly and step by step'),
+      );
+    });
+
+    test('档位与 budget 在 JSON 往返后保持一致', () {
+      final s = EngineSettings();
+      s.setThinkingLevel(3);
+      final round = EngineSettings.fromJson(s.toJson());
+      expect(round.thinkingLevel, 3);
+      expect(round.thinkingBudget, 8192);
+    });
+
+    test('推理模型按「思考」标签识别，普通模型不识别', () {
+      final reasoning = ModelSpec.fromJson({
+        'id': 'x', 'name': 'X', 'vendor': 'v', 'paramsB': 1,
+        'sizeBytes': 1, 'contextLength': 4096, 'quant': 'q',
+        'description': 'd', 'tags': ['思考', '中英'],
+        'modelScopeRepo': 'r', 'hfRepo': 'h', 'accent': '#000000',
+        'recommended': false, 'temperature': 0.7, 'topP': 0.9, 'topK': 40,
+      });
+      final plain = ModelSpec.fromJson({
+        'id': 'y', 'name': 'Y', 'vendor': 'v', 'paramsB': 1,
+        'sizeBytes': 1, 'contextLength': 4096, 'quant': 'q',
+        'description': 'd', 'tags': ['稳定', '中英'],
+        'modelScopeRepo': 'r', 'hfRepo': 'h', 'accent': '#000000',
+        'recommended': false, 'temperature': 0.7, 'topP': 0.9, 'topK': 40,
+      });
+      expect(reasoning.isReasoning, isTrue);
+      expect(plain.isReasoning, isFalse);
     });
   });
 }

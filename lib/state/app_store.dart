@@ -523,7 +523,7 @@ class AppStore extends ChangeNotifier {
     try {
       await engine.generate(
         history: recent,
-        systemPrompt: settings.systemPrompt,
+        systemPrompt: settings.systemPromptWithThinking(),
         maxTokens: settings.maxNewTokens,
       );
     } catch (e) {

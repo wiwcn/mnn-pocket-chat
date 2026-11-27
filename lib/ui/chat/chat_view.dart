@@ -399,13 +399,16 @@ class _ChatInputBox extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: ThinkingBadge(
-                      enabled: store.settings.enableThinking,
-                      onTap: onConfigureThinking,
+                  // 推理强度只对具备原生思考能力的模型有意义；普通模型
+                  // 不展示该入口，避免给出点了也没有效果的按钮。
+                  if (store.activeModel?.isReasoning == true)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: ThinkingBadge(
+                        level: store.settings.thinkingLevel,
+                        onTap: onConfigureThinking,
+                      ),
                     ),
-                  ),
                   if (store.activeModel?.vision == true)
                     IconButton(
                       tooltip: '添加图片',

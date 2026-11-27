@@ -320,7 +320,7 @@ class _SettingsViewState extends State<SettingsView> {
                           SettingItem(
                             title: '深度思考',
                             description: _enableThinking
-                                ? '已开启 · 由模型原生 enable_thinking 控制'
+                                ? '已开启 · 原生开关，强度档位可在对话页调整'
                                 : '已关闭 · 直接给出答案',
                             trailing: Switch(
                               value: _enableThinking,

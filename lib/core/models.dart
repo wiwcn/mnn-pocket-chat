@@ -47,6 +47,10 @@ class ModelSpec {
   /// 是否支持图片输入（MNN Omni 引擎的视觉编码器）。
   final bool vision;
 
+  /// 是否具备原生思考/推理能力（模型库以「思考」标签标记）。
+  /// 仅对这类模型展示推理强度控制。
+  bool get isReasoning => tags.contains('思考');
+
   String get paramsLabel {
     if (paramsB < 0.2) return '${(paramsB * 1000).round()}M';
     return '${paramsB.toStringAsFixed(paramsB == paramsB.roundToDouble() ? 1 : 2)}B';
@@ -263,6 +267,7 @@ class EngineSettings {
     this.repetitionPenalty = 1.05,
     this.ngramFactor = 1.1,
     this.enableThinking = true,
+    this.thinkingBudget = 2048,
     this.systemPrompt =
         'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
   });
@@ -284,9 +289,12 @@ class EngineSettings {
   /// 深度思考模型是否输出 `<think>` 思考过程（原生开关）。
   ///
   /// 通过 MNN 的 `jinja.context.enable_thinking` 下发，与官方 iOS App 的
-  /// `setThinkingModeEnabled` 完全一致。MNN 引擎没有「思考强度/预算」这类
-  /// 参数，因此本 App 也不再伪造档位或注入提示词。
+  /// `setThinkingModeEnabled` 完全一致。MNN 引擎没有原生的「思考强度/预算」
+  /// 参数，因此详略档位由 [thinkingBudget] 通过系统提示词注入来补充实现。
   bool enableThinking;
+  /// 思考详略预算（token 数），驱动「关闭/简洁/标准/深入」四档强度提示词。
+  /// 0 表示关闭；>0 时由原生 enable_thinking 开关 + 系统提示词注入共同生效。
+  int thinkingBudget;
   String systemPrompt;
 
   Map<String, dynamic> toJson() => {
@@ -301,6 +309,7 @@ class EngineSettings {
         'repetitionPenalty': repetitionPenalty,
         'ngramFactor': ngramFactor,
         'enableThinking': enableThinking,
+        'thinkingBudget': thinkingBudget,
         'systemPrompt': systemPrompt,
       };
 
@@ -318,9 +327,56 @@ class EngineSettings {
           (json['repetitionPenalty'] as num?)?.toDouble() ?? 1.05,
       ngramFactor: (json['ngramFactor'] as num?)?.toDouble() ?? 1.1,
       enableThinking: json['enableThinking'] as bool? ?? true,
+      thinkingBudget: (json['thinkingBudget'] as num?)?.toInt() ?? 2048,
       systemPrompt: json['systemPrompt'] as String? ??
           'You are a helpful, concise on-device assistant. Reply in the same language as the user.',
     );
+  }
+
+  /// 思考强度档位数：关闭 / 简洁 / 标准 / 深入。
+  static const int thinkingLevelCount = 4;
+  static const List<String> thinkingLevelLabels = ['关闭', '简洁', '标准', '深入'];
+  static const List<String> thinkingLevelSubtitles = [
+    '直接回答，不输出推理过程',
+    '简要思考',
+    '平衡思考与速度',
+    '充分展开推理过程',
+  ];
+
+  /// 当前思考强度档位（0..3）。
+  int get thinkingLevel {
+    if (!enableThinking) return 0;
+    if (thinkingBudget <= 0) return 2;
+    if (thinkingBudget <= 1024) return 1;
+    if (thinkingBudget >= 4096) return 3;
+    return 2;
+  }
+
+  /// 设置思考强度档位，联动原生开关与提示词预算。
+  void setThinkingLevel(int level) {
+    final clamped = level.clamp(0, thinkingLevelCount - 1);
+    enableThinking = clamped > 0;
+    thinkingBudget = switch (clamped) {
+      0 => 0,
+      1 => 512,
+      2 => 2048,
+      3 => 8192,
+      _ => 2048,
+    };
+  }
+
+  /// 将思考详略约束注入系统提示词，作为原生开关的补充。
+  /// 仅当思考开启且强度非「标准」时注入，避免改变默认行为。
+  String systemPromptWithThinking() {
+    final base = systemPrompt.trim();
+    if (!enableThinking || thinkingBudget <= 0) return base;
+    final hint = thinkingBudget <= 1024
+        ? 'Keep your reasoning concise and brief.'
+        : thinkingBudget >= 4096
+            ? 'Think thoroughly and step by step before answering.'
+            : '';
+    if (hint.isEmpty) return base;
+    return base.isEmpty ? hint : '$base\n$hint';
   }
 
   /// 生成 MNN 可识别的思考开关配置片段。
