@@ -223,17 +223,6 @@ class _ThinkingSheetState extends State<_ThinkingSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                '「关闭」直接关掉原生思考开关；「简洁 / 标准 / 深入」在开启原生思考的同时，'
-                '通过系统提示词约束推理详略。均实时生效，无需重新加载模型。',
-                style: text.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
